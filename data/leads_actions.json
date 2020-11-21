@@ -1,0 +1,14 @@
+[
+  {
+    "lead_id": 0,
+    "owner": "makdabrowski",
+    "area": "Łódzkie",
+    "region":"Południe",
+    "status" : "Kupiony",
+    "date": 0,
+    "note": "pierwszy lead testowy",
+    "policy": "123456789",
+    "income": 1200
+  }
+  
+]
