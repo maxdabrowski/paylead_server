@@ -3,8 +3,10 @@ export interface User {
   name: string;
   surname: string;
   nick: string;
-  password: string;
+  password?: string;
   region: string;
   area: string;
-  role: string
+  role: string;
+  phone: string;
+  mail: string
 }

@@ -11,6 +11,14 @@ import {
   getLeadsOwnByRegion,
   getLeadsOwn,
   addLeadOwn,
+  getStatusById,
+  getLeadsOwnById,
+  addStatus,
+  getUsersByArea,
+  changePassword,
+  getStatusByUser,
+  leadToCharts,
+  statusToCharts,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -20,6 +28,14 @@ router.use(express.json());
 //ścieżka do logowania użytkownika
 router.post('/login', async (req: express.Request, res: express.Response) => {
   res.json(await getUserToLogin(req.body));
+});
+
+router.post('/structure', async (req: express.Request, res: express.Response) => {
+  res.json(await getUsersByArea(req.body));
+});
+
+router.post('/change_password', async (req: express.Request, res: express.Response) => {
+  res.json(await changePassword(req.body));
 });
 
 //ścieżka do zwracania leadów do kupienia w zalezniści od roli i obszaru
@@ -45,8 +61,13 @@ router.post('/lead_buy', async (req: express.Request, res: express.Response) => 
 
 //ścieżka do zwracania leadów własnych
 router.post('/lead_own', async (req: express.Request, res: express.Response) => {
-  if(req.body.role ==="agent"){
-    res.json(await getLeadsOwnByUser(req.body.type, req.body.agent));
+
+   if(req.body.lead_id){
+    res.json(await getLeadsOwnById(req.body.lead_id));
+  }
+
+  else if(req.body.agent){
+    res.json(await getLeadsOwnByUser(req.body.agent));
 
   }else if (req.body.role ==="area"){
     res.json(await getLeadsOwnByArea(req.body.type));
@@ -63,3 +84,34 @@ router.post('/lead_own', async (req: express.Request, res: express.Response) => 
 router.post('/lead_add_agent', async (req: express.Request, res: express.Response) => {
     res.json(await addLeadOwn(req.body));
 });
+
+//pobranie danych o kampaniach do wykresów
+router.post('/lead_to_charts', async (req: express.Request, res: express.Response) => {
+  res.json(await leadToCharts(req.body.user));
+});
+
+//pobranie danych o statusach do wykresów
+router.post('/status_to_charts', async (req: express.Request, res: express.Response) => {
+  res.json(await statusToCharts(req.body.user));
+});
+
+//ścieżka do zwracania statusów
+router.post('/status_get', async (req: express.Request, res: express.Response) => {
+  if(req.body.lead_id){
+    res.json(await getStatusById(req.body.lead_id));
+  } 
+  else if(req.body.owner){
+    res.json(await getStatusByUser(req.body.owner));
+  }
+
+  //kolejne bobierania dla użytkownika area i region i all
+
+});
+
+//ścieżka do zwracania statusów
+router.post('/status_post', async (req: express.Request, res: express.Response) => {
+  res.json(await addStatus(req.body));
+  //kolejne bobierania dla użytkownika area i region i all
+});
+
+

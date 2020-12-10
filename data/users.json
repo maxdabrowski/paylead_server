@@ -7,7 +7,9 @@
     "password":"1234",
     "region":"",
     "area":"",
-    "role":"admin"
+    "role":"admin", 
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
 
   },
   {
@@ -18,7 +20,9 @@
     "password":"1234",
     "region":"",
     "area":"",
-    "role":"admin"
+    "role":"admin",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 3,
@@ -28,7 +32,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"",
-    "role":"region"
+    "role":"region",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 4,
@@ -38,7 +44,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"",
-    "role":"region"
+    "role":"region",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 5,
@@ -48,7 +56,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Zachodnio-Pomorskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 6,
@@ -58,7 +68,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Pomorskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 7,
@@ -68,7 +80,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Warmińsko-Mazurskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 8,
@@ -78,7 +92,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Kujawsko-Pomorskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 9,
@@ -88,7 +104,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Podlaskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 10,
@@ -98,7 +116,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Lubuskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 11,
@@ -108,7 +128,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Wielkopolskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 12,
@@ -118,7 +140,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Mazowieckie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 13,
@@ -128,7 +152,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Łódzkie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 14,
@@ -138,7 +164,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Lubelskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 15,
@@ -148,7 +176,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Świętokrzyskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 16,
@@ -158,7 +188,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Dolnośląskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 17,
@@ -168,7 +200,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Opolskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 18,
@@ -178,7 +212,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Śląskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 19,
@@ -188,7 +224,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Małopolskie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 20,
@@ -198,7 +236,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Podkarpackie",
-    "role":"area"
+    "role":"area",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 21,
@@ -208,7 +248,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Zachodnio-Pomorskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 22,
@@ -218,7 +260,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Pomorskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 23,
@@ -228,7 +272,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Warmińsko-Mazurskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 24,
@@ -238,7 +284,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Kujawsko-Pomorskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 25,
@@ -248,7 +296,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Podlaskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 26,
@@ -258,7 +308,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Lubuskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 27,
@@ -268,7 +320,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Wielkopolskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 28,
@@ -278,7 +332,9 @@
     "password":"1234",
     "region":"Północ",
     "area":"Mazowieckie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 29,
@@ -288,7 +344,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Łódzkie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 30,
@@ -298,7 +356,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Lubelskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 31,
@@ -308,7 +368,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Świętokrzyskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 32,
@@ -318,7 +380,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Dolnośląskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 33,
@@ -328,7 +392,9 @@
     "password":"1234",
     "region":"Południe",
     "area":"Opolskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
     "id": 34,
@@ -338,10 +404,12 @@
     "password":"1234",
     "region":"Południe",
     "area":"Śląskie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   },
   {
-    "id": 25,
+    "id": 35,
     "name": "Sebastian",
     "surname": "Gnatowski",
     "nick":"sebgnatowski",
@@ -351,13 +419,63 @@
     "role":"agent"
   },
   {
-    "id": 26,
+    "id": 36,
     "name": "Wiola",
     "surname": "Janczarka",
     "nick":"wiojanczarka",
     "password":"1234",
     "region":"Południe",
     "area":"Podkarpackie",
-    "role":"agent"
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
+  },
+  {
+    "id": 37,
+    "name": "Karol",
+    "surname": "Głowacki",
+    "nick":"karglowacki",
+    "password":"1234",
+    "region":"Południe",
+    "area":"Łódzkie",
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
+  },
+  {
+    "id": 38,
+    "name": "Adam",
+    "surname": "Małysz",
+    "nick":"adamalysz",
+    "password":"1234",
+    "region":"Południe",
+    "area":"Łódzkie",
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
+  },
+  {
+    "id": 39,
+    "name": "Julia",
+    "surname": "Wieniawa",
+    "nick":"julwieniawa",
+    "password":"1234",
+    "region":"Południe",
+    "area":"Łódzkie",
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
+  },
+  {
+    "id": 40,
+    "name": "Karolina",
+    "surname": "Zbycińska",
+    "nick":"karzbycinska",
+    "password":"1234",
+    "region":"Południe",
+    "area":"Łódzkie",
+    "role":"agent",
+    "phone": "723325576",
+    "mail": "makdabrowski@pzu.pl"
   }
 ]
