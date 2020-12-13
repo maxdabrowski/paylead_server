@@ -19,11 +19,15 @@ import {
   getStatusByUser,
   leadToCharts,
   statusToCharts,
+  getCampaign,
+  leadCommision,
+  ownLeadWallet,
 } from './db-paylead';
 
 export const router = express.Router();
 router.use(cors());
 router.use(express.json());
+
 
 //ścieżka do logowania użytkownika
 router.post('/login', async (req: express.Request, res: express.Response) => {
@@ -37,6 +41,7 @@ router.post('/structure', async (req: express.Request, res: express.Response) =>
 router.post('/change_password', async (req: express.Request, res: express.Response) => {
   res.json(await changePassword(req.body));
 });
+
 
 //ścieżka do zwracania leadów do kupienia w zalezniści od roli i obszaru
 router.post('/lead_buy', async (req: express.Request, res: express.Response) => {
@@ -59,6 +64,7 @@ router.post('/lead_buy', async (req: express.Request, res: express.Response) => 
   };
 });
 
+
 //ścieżka do zwracania leadów własnych
 router.post('/lead_own', async (req: express.Request, res: express.Response) => {
 
@@ -80,20 +86,24 @@ router.post('/lead_own', async (req: express.Request, res: express.Response) => 
   };
 });
 
+
 //ścieżka do dodawania leada z własnego konta 
 router.post('/lead_add_agent', async (req: express.Request, res: express.Response) => {
     res.json(await addLeadOwn(req.body));
 });
+
 
 //pobranie danych o kampaniach do wykresów
 router.post('/lead_to_charts', async (req: express.Request, res: express.Response) => {
   res.json(await leadToCharts(req.body.user));
 });
 
+
 //pobranie danych o statusach do wykresów
 router.post('/status_to_charts', async (req: express.Request, res: express.Response) => {
   res.json(await statusToCharts(req.body.user));
 });
+
 
 //ścieżka do zwracania statusów
 router.post('/status_get', async (req: express.Request, res: express.Response) => {
@@ -114,4 +124,19 @@ router.post('/status_post', async (req: express.Request, res: express.Response) 
   //kolejne bobierania dla użytkownika area i region i all
 });
 
+
+//pobranie danych o kampaniach do wykresów
+router.post('/commision', async (req: express.Request, res: express.Response) => {
+  res.json(await leadCommision(req.body.user));
+});
+
+//pobranie danych o kampaniach do wykresów
+router.post('/own_lead_wallet', async (req: express.Request, res: express.Response) => {
+  res.json(await ownLeadWallet(req.body.user));
+});
+
+//pobranie danych o kampaniach do wykresów
+router.get('/campaign', async (req: express.Request, res: express.Response) => {
+  res.json(await getCampaign());
+});
 

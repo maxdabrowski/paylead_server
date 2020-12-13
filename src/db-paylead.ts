@@ -6,10 +6,13 @@ import { LoginRes } from './models/LoginRes'
 import { Lead } from './models/Lead'
 import { Action } from './models/Action';
 import { ChangePassword } from './models/ChangePassword';
+import { Campaign } from './models/Campaign';
+import { Commision } from './models/Commision';
 
 type USER = User[];
 type LEAD = Lead[];
 type ACTION = Action [];
+type CAMPAIGN = Campaign [];
 
 
 const readFile = util.promisify(fs.readFile);
@@ -22,6 +25,10 @@ const leads$: Promise<LEAD> = readFile('./data/leads.json', 'utf8')
 
 const leadsActions$: Promise<ACTION> = readFile('./data/leads_actions.json', 'utf8')
   .then(JSON.parse, console.error)
+
+const campaigns$: Promise<CAMPAIGN> = readFile('./data/campaign.json', 'utf8')
+  .then(JSON.parse, console.error)
+
 
 
 
@@ -39,7 +46,8 @@ export async function getUserToLogin(loginData: LoginData): Promise<LoginRes> {
       area: user.area,
       role: user.role,
       phone: user.phone,
-      mail: user.mail
+      mail: user.mail,
+      active:user.active
     };
 
     if(user.password === loginData.password)
@@ -250,7 +258,8 @@ function filterUsers (users:User[]){
       area: user.area,
       role: user.role,
       phone: user.phone,
-      mail: user.mail
+      mail: user.mail,
+      active: user.active
     };
 
   usersToSend.push(userToSend)
@@ -349,6 +358,60 @@ export async function statusToCharts(user:string) {
 
 }
 
+//pobranie statusów po lead id
+export async function getCampaign(): Promise<Campaign[]>{
+  return (await campaigns$);
+}
 
 
+export async function leadCommision(user:string) {
 
+  let commisionTab = [];
+
+  let leadObj = (await leads$).filter(p => p.status === "Sukces" && p.owner === user);
+  let statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.owner === user);
+  let campaignObj = (await campaigns$);
+
+  if(leadObj.length > 0){
+  leadObj.forEach(lead => {
+    let status = statusObj.find(status => status.lead_id == lead.lead_id );
+    let campaign = campaignObj.find(campaign => campaign.campaign === lead.campaign);
+
+    let commision: Commision = {
+      lead_id: lead.lead_id,
+      type: lead.type,
+      campaign: lead.campaign,
+      income: status.income,
+      commision: Math.ceil(status.income*campaign.commision),
+      policy:status.policy,
+      date: status.date.substr(0,10),
+      month: status.date.substr(0,7)
+    }
+    commisionTab.push(commision)
+  });
+  return commisionTab
+} else return []
+}
+
+export async function ownLeadWallet(user:string) {
+  let ownLeadTab = [];
+  let leadObj = (await leads$).filter(p => p.owner === user);
+  let statusObj = (await leadsActions$).filter(p => p.status === "Kupiony" && p.owner === user);
+
+  if(leadObj.length > 0){
+  leadObj.forEach(lead => {
+    let status = statusObj.find(status => status.lead_id === lead.lead_id );
+
+    let ownLead = {
+      lead_id: lead.lead_id,
+      type: lead.type,
+      campaign: lead.campaign,
+      price: lead.price,
+      date: status.date.substr(0,10),
+      month: status.date.substr(0,7)
+    }
+    ownLeadTab.push(ownLead)
+  });
+  return ownLeadTab
+} else return []
+}
