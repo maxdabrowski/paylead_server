@@ -9,12 +9,13 @@ import { ChangePassword } from './models/ChangePassword';
 import { Campaign } from './models/Campaign';
 import { Commision } from './models/Commision';
 
+//ustawienia typów pobieranych danych
 type USER = User[];
 type LEAD = Lead[];
 type ACTION = Action [];
 type CAMPAIGN = Campaign [];
 
-
+//ustawienie zmiennych do pobierania poszczególnych danych z bazy 
 const readFile = util.promisify(fs.readFile);
 
 const user$: Promise<USER> = readFile('./data/users.json', 'utf8')
@@ -30,13 +31,12 @@ const campaigns$: Promise<CAMPAIGN> = readFile('./data/campaign.json', 'utf8')
   .then(JSON.parse, console.error)
 
 
-
+//----------------POBIERANIE DANYCH DOTYCZACYCH AGENTA--------------------
 
 //logowanie użytkownika
 export async function getUserToLogin(loginData: LoginData): Promise<LoginRes> {
   const user = (await user$).find(user => user.nick === loginData.nick);
   if(user !== undefined){
-
     const userToSend: User = {
       id: user.id,
       name: user.name,
@@ -49,8 +49,7 @@ export async function getUserToLogin(loginData: LoginData): Promise<LoginRes> {
       mail: user.mail,
       active:user.active
     };
-
-    if(user.password === loginData.password)
+    if(user.password === loginData.password && user.active)
       return ({loginError:false, loginUser: userToSend})
     else
       return ( {loginError:true})
@@ -61,9 +60,7 @@ export async function getUserToLogin(loginData: LoginData): Promise<LoginRes> {
 
 //zmiana hasła użytkownika
 export async function changePassword(changePassword: ChangePassword ): Promise<boolean> {
-
   const user = (await user$).find(user => user.nick === changePassword.nick);
-
   if(user.password === changePassword.password){
     (await user$).find(user => user.nick === changePassword.nick).password = changePassword.newPassword
     return true
@@ -72,73 +69,132 @@ export async function changePassword(changePassword: ChangePassword ): Promise<b
     return false
   }
 
-
-
   //pobranie użytkowników danego regionu 
   export async function getUsersByArea(structure:{area?: string, region?:string}){
     let userObj: User[];
+    //pobranie użytkowników danego obszaru 
     if(structure.area){
-      userObj = (await user$).filter(p => p.area === structure.area);
+      userObj = (await user$).filter(p => p.area === structure.area && p.active);
+    //pobranie użytkowników danego regionu
     } else if(structure.region){
-      userObj = (await user$).filter(p => p.area === structure.region);
+      userObj = (await user$).filter(p => p.area === structure.region && p.active);
     }
     return filterUsers(userObj)
   }
 
-//pobieranie leadów do kupienia 
+  //funkcja do filtrowania użytkowników tak aby nie wysyłać haseł użytkowników
+  function filterUsers (users:User[]){
+    let usersToSend = [];
+  
+    users.forEach(user => {
+      const userToSend: User = {
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        nick: user.nick,
+        region: user.region,
+        area: user.area,
+        role: user.role,
+        phone: user.phone,
+        mail: user.mail,
+        active: user.active
+      };
+  
+    usersToSend.push(userToSend)
+    })
+  return usersToSend
+  }
+  
+//-----------------POBIERANIE DANYCH O KONTAKTACH DO KUPIENIA ------------------
 
-//leady to kupienia wszystkie 
+//kontakty to kupienia wszystkie 
 export async function getLeadsToBuy(): Promise<Lead[]>{
   let leadObj = (await leads$).filter(p => p.owner === "")
   return filterLeadToBuy(leadObj)
 }
 
-//leady to kupienia z podanego Region
+//kontakty to kupienia z podanego Region
 export async function getLeadsToBuyByRegion(region: string): Promise<Lead[]>{
   let leadObj = (await leads$).filter(p => p.owner === "" && p.region === region);
   return filterLeadToBuy(leadObj)
 }
 
-//leady to kupienia z podanego Area
+//kontakty to kupienia z podanego Area
 export async function getLeadsToBuyByArea(area: string): Promise<Lead[]>{
   let leadObj = (await leads$).filter(p => p.owner === "" && p.area === area);
   return filterLeadToBuy(leadObj)
 }
 
+//funkcja do filtrowania danych o kontaktach do danych potrzebnych tylko odo kupienia 
+function filterLeadToBuy(leads:Lead[]){
+  let leadToBuy = [];
+  leads.forEach(lead => {
 
+    const onelead = {
+      lead_id: lead.lead_id,
+      name: lead.name,
+      type: lead.type,
+      campaign: lead.campaign,
+      price: lead.price,
+      area: lead.area,
+    };
 
-
-//pobieranie leadów z portfela
-
-//leady to kupienia wszystkie 
-export async function getLeadsOwn(): Promise<Lead[]>{
-  return (await leads$);
+  leadToBuy.push(onelead)
+  })
+return leadToBuy
 }
 
-//leady to kupienia z podanego Region
+
+//---POBIERANIE DANYCH O KONTAKTACH WŁASNYCH, JUŻ ZAKUPIONYCH, ORAZ AKCJA ZAKUPU------------
+
+//kontakty zakupione (z przypisanym właścicielem) z danego regionu
 export async function getLeadsOwnByRegion(region: string): Promise<Lead[]>{
   return (await leads$).filter(p => p.owner !== "" && p.region === region);
 }
 
-//leady to kupienia z podanego Area
+//kontakty zakupione (z przypisanym właścicilem) z danego obszaru
 export async function getLeadsOwnByArea(area: string): Promise<Lead[]>{
   return (await leads$).filter(p => p.owner !== "" && p.area === area);
 }
 
+// kontakty zakupione (z przypisanym właścicelem) do danego użyktownika
 export async function getLeadsOwnByUser(user: string): Promise<Lead[]>{
   return (await leads$).filter(p => p.owner === user);
 }
 
+// kontakty zakupione (z przypisanym właścicilem) do danego identyfikatora 
 export async function getLeadsOwnById(lead_id: number): Promise<Lead[]>{
   return (await leads$).filter(p => p.lead_id === lead_id);
 }
+//funkcja przypisująca właściciela do danego leada po kupieniu go i dodanie akcji kupna
+export async function updateBuyLead(agent: string, lead_id: number){
 
-// dodawanie własnego leada
+  const lead = (await leads$).find(lead => lead.lead_id === lead_id);
+
+  const action: Action = {
+    lead_id: lead.lead_id,
+    owner: agent,
+    area: lead.area,
+    region: lead.region,
+    date: new Date().toLocaleString(),
+    status: lead.status,
+    note: '',
+    policy: '',
+    income: 0
+  };
+
+  (await leadsActions$).push(action);
+  (await leads$).find(lead => lead.lead_id === lead_id).owner=agent;
+}
+
+
+//--------------DODAWANIE WŁASNEGO KONTAKTU Z FORMULARZA-----------------
+
 export async function addLeadOwn(lead: Lead ) {
   let newLead = lead;
   const lead_id = (await leads$).length + 1;
   newLead.lead_id = lead_id;
-
+  //stworznie nowej akcji w czasie dodania własnego kontaktu
   const action: Action = {
     lead_id: lead_id,
     owner: lead.owner,
@@ -150,12 +206,15 @@ export async function addLeadOwn(lead: Lead ) {
     policy: '',
     income: 0
   };
-
+  //dodanie nowego kontaktu
   (await leads$).push(newLead);
+  //dodanie akcji o dodaniu własnego kontaktu
   (await leadsActions$).push(action);
-
   return true
 }
+
+
+//------------POBIERANIE DANYCH DOTYCZĄCYCH STATUSÓW KONTKATÓW-----------
 
 //pobranie statusów po lead id
 export async function getStatusById(lead_id: number): Promise<Action[]>{
@@ -167,11 +226,11 @@ export async function getStatusByUser(owner: string): Promise<Action[]>{
   return (await leadsActions$).filter(p => p.owner === owner);
 }
 
-
 //dodanie statusu i update statusu kontaktu 
 export async function addStatus(statusData: any){
   (await leads$).find(lead => lead.lead_id === statusData.lead_id).status = statusData.status;
   const lead = (await leads$).find(lead => lead.lead_id === statusData.lead_id);
+
   let policyData: string = '';
   let incomeData: number = 0;
 
@@ -196,83 +255,10 @@ export async function addStatus(statusData: any){
   return true
 }
 
-//pobranie statusów po wszystkich
-export async function getStatusAll(): Promise<Action[]>{
-  return (await leadsActions$);
-}
 
-//funkcja przypisująca właściciela do danego leada po kupieniu go i dodanie akcji kupna
-export async function updateBuyLead(agent: string, lead_id: number){
+//---------------------DANE DO WYKONANIA WYKRESÓW-------------------------------
 
-  const lead = (await leads$).find(lead => lead.lead_id === lead_id);
-
-  const action: Action = {
-    lead_id: lead.lead_id,
-    owner: agent,
-    area: lead.area,
-    region: lead.region,
-    date: new Date().toLocaleString(),
-    status: lead.status,
-    note: '',
-    policy: '',
-    income: 0
-  };
-
-  (await leadsActions$).push(action);
-  (await leads$).find(lead => lead.lead_id === lead_id).owner=agent;
-}
-
-
-//funkcja do filtrowania danych o leadach do danych potrzebnych tylk odo kupienia 
-function filterLeadToBuy(leads:Lead[]){
-  let leadToBuy = [];
-  leads.forEach(lead => {
-
-    const onelead = {
-      lead_id: lead.lead_id,
-      name: lead.name,
-      type: lead.type,
-      campaign: lead.campaign,
-      price: lead.price,
-      area: lead.area,
-    };
-
-  leadToBuy.push(onelead)
-  })
-return leadToBuy
-}
-
-
-
-//funkcja do filtrowania danych o leadach do danych potrzebnych tylk odo kupienia 
-function filterUsers (users:User[]){
-  let usersToSend = [];
-
-  users.forEach(user => {
-    const userToSend: User = {
-      id: user.id,
-      name: user.name,
-      surname: user.surname,
-      nick: user.nick,
-      region: user.region,
-      area: user.area,
-      role: user.role,
-      phone: user.phone,
-      mail: user.mail,
-      active: user.active
-    };
-
-  usersToSend.push(userToSend)
-  })
-return usersToSend
-}
-
-
-
-
-//------------------------------------------------------------------------------
-//do wykresów
-
+//dane o kontaktach do wykresów 
 export async function leadToCharts(user:string) {
 
   let dataTypeLabel  = [];
@@ -321,18 +307,19 @@ export async function leadToCharts(user:string) {
     dataAssetsValue.push(value);
   }
 
- let chartsData = {
-  dataTypeLabel: dataTypeLabel,
-  dataTypeValue: dataTypeValue,
-  dataAssetsLabel: dataAssetsLabel,
-  dataAssetsValue: dataAssetsValue,
-  dataLiveLabel: dataLiveLabel,
-  dataLiveValue: dataLiveValue
-}
+  //objekt zawierający dane do wykresów 
+  let chartsData = {
+    dataTypeLabel: dataTypeLabel,
+    dataTypeValue: dataTypeValue,
+    dataAssetsLabel: dataAssetsLabel,
+    dataAssetsValue: dataAssetsValue,
+    dataLiveLabel: dataLiveLabel,
+    dataLiveValue: dataLiveValue
+  }
 return chartsData
 }
 
-
+// dane o statusach do wykresu 
 export async function statusToCharts(user:string) {
 
   let statusLabel  = [];
@@ -355,15 +342,19 @@ export async function statusToCharts(user:string) {
     statusValue: statusValue,
   }
   return chartsData
-
 }
 
-//pobranie statusów po lead id
+
+//--------------------POBRANIE DANYCH O KAMPANIACH----------------------
+
 export async function getCampaign(): Promise<Campaign[]>{
   return (await campaigns$);
 }
 
 
+//-------------------POBRANIE DANYCH DO PORTFELA------------------------
+
+//pobranie danych o prowizjach dla agenta 
 export async function leadCommision(user:string) {
 
   let commisionTab = [];
@@ -373,26 +364,28 @@ export async function leadCommision(user:string) {
   let campaignObj = (await campaigns$);
 
   if(leadObj.length > 0){
-  leadObj.forEach(lead => {
-    let status = statusObj.find(status => status.lead_id == lead.lead_id );
-    let campaign = campaignObj.find(campaign => campaign.campaign === lead.campaign);
+    leadObj.forEach(lead => {
+      let status = statusObj.find(status => status.lead_id == lead.lead_id );
+      let campaign = campaignObj.find(campaign => campaign.campaign === lead.campaign);
 
-    let commision: Commision = {
-      lead_id: lead.lead_id,
-      type: lead.type,
-      campaign: lead.campaign,
-      income: status.income,
-      commision: Math.ceil(status.income*campaign.commision),
-      policy:status.policy,
-      date: status.date.substr(0,10),
-      month: status.date.substr(0,7)
-    }
-    commisionTab.push(commision)
-  });
-  return commisionTab
-} else return []
+      let commision: Commision = {
+        lead_id: lead.lead_id,
+        type: lead.type,
+        campaign: lead.campaign,
+        income: status.income,
+        commision: Math.ceil(status.income*campaign.commision),
+        policy:status.policy,
+        date: status.date.substr(0,10),
+        month: status.date.substr(0,7)
+      }
+      commisionTab.push(commision)
+    });
+    return commisionTab
+  }else 
+    return []
 }
 
+//pobranie danych o wydatach agenta na kontakty
 export async function ownLeadWallet(user:string) {
   let ownLeadTab = [];
   let leadObj = (await leads$).filter(p => p.owner === user);
