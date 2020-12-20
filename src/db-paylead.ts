@@ -177,7 +177,7 @@ export async function updateBuyLead(agent: string, lead_id: number){
     area: lead.area,
     region: lead.region,
     date: new Date().toLocaleString(),
-    status: lead.status,
+    status: "Kupiony",
     note: '',
     policy: '',
     income: 0
@@ -228,31 +228,38 @@ export async function getStatusByUser(owner: string): Promise<Action[]>{
 
 //dodanie statusu i update statusu kontaktu 
 export async function addStatus(statusData: any){
-  (await leads$).find(lead => lead.lead_id === statusData.lead_id).status = statusData.status;
-  const lead = (await leads$).find(lead => lead.lead_id === statusData.lead_id);
 
-  let policyData: string = '';
-  let incomeData: number = 0;
+  const successStatus = (await leadsActions$).find(status => status.lead_id === statusData.lead_id && status.status === "Sukces");
 
-  if(statusData.success.length > 0 ){
-    policyData = statusData.success[0].policy;
-    incomeData = parseInt(statusData.success[0].income);
-  }
-
-  const action: Action = {
-    lead_id: lead.lead_id,
-    owner: lead.owner,
-    area: lead.area,
-    region: lead.region,
-    status: statusData.status,
-    date: new Date().toLocaleString(),
-    note: statusData.note,
-    policy: policyData,
-    income: incomeData,
+  if (successStatus !== undefined && successStatus.status === "Sukces"){
+    return false
+  }else{
+    (await leads$).find(lead => lead.lead_id === statusData.lead_id).status = statusData.status;
+    const lead = (await leads$).find(lead => lead.lead_id === statusData.lead_id);
   
-  };
-  (await leadsActions$).push(action);
-  return true
+    let policyData: string = '';
+    let incomeData: number = 0;
+  
+    if(statusData.success.length > 0 ){
+      policyData = statusData.success[0].policy;
+      incomeData = parseInt(statusData.success[0].income);
+    }
+  
+    const action: Action = {
+      lead_id: lead.lead_id,
+      owner: lead.owner,
+      area: lead.area,
+      region: lead.region,
+      status: statusData.status,
+      date: new Date().toLocaleString(),
+      note: statusData.note,
+      policy: policyData,
+      income: incomeData,
+    
+    };
+    (await leadsActions$).push(action);
+    return true
+  }
 }
 
 
@@ -389,7 +396,7 @@ export async function leadCommision(user:string) {
 export async function ownLeadWallet(user:string) {
   let ownLeadTab = [];
   let leadObj = (await leads$).filter(p => p.owner === user);
-  let statusObj = (await leadsActions$).filter(p => p.status === "Kupiony" && p.owner === user);
+  let statusObj = (await leadsActions$).filter(p => (p.status === "Kupiony" || p.status === "Własny") && p.owner === user);
 
   if(leadObj.length > 0){
   leadObj.forEach(lead => {
