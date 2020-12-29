@@ -795,7 +795,7 @@
     "role":"agent",
     "phone": "894753456",
     "mail": "rafsmokowiec@pzu.pl",
-    "active": true
+    "active": false
   },
   {
     "id": 62,
@@ -1097,5 +1097,4 @@
     "mail": "pawjozwicki@pzu.pl",
     "active": true
   }
- 
 ]

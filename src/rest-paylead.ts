@@ -20,6 +20,12 @@ import {
   getCampaign,
   leadCommision,
   ownLeadWallet,
+  getDirectorByRegion,
+  addNewAgent,
+  changeDataUser,
+  deactivateAgent,
+  getStatusByArea,
+  getStatusByRegion,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -36,6 +42,27 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
 router.post('/structure', async (req: express.Request, res: express.Response) => {
   res.json(await getUsersByArea(req.body));
 });
+
+//pobranie innych użytkowników należacych do twojego obszaru 
+router.post('/structure_director', async (req: express.Request, res: express.Response) => {
+  res.json(await getDirectorByRegion(req.body));
+});
+
+//dodawanie nowego agenta
+router.post('/add_agent', async (req: express.Request, res: express.Response) => {
+  res.json(await addNewAgent(req.body));
+});
+
+//zmiana danych użytkownika
+router.post('/change_agent', async (req: express.Request, res: express.Response) => {
+  res.json(await changeDataUser(req.body));
+});
+
+//zmiana danych użytkownika
+router.post('/deactivate_agent', async (req: express.Request, res: express.Response) => {
+  res.json(await deactivateAgent(req.body));
+});
+
 
 //zmiana hasła
 router.post('/change_password', async (req: express.Request, res: express.Response) => {
@@ -67,7 +94,6 @@ router.post('/lead_buy', async (req: express.Request, res: express.Response) => 
 
 //ścieżka do zwracania leadów własnych
 router.post('/lead_own', async (req: express.Request, res: express.Response) => {
-
   //pobieranie własnego leada po identyfikatorze
    if(req.body.lead_id){
     res.json(await getLeadsOwnById(req.body.lead_id));
@@ -78,7 +104,8 @@ router.post('/lead_own', async (req: express.Request, res: express.Response) => 
     res.json(await getLeadsOwnByUser(req.body.agent));
 
   //pobieranie własnych leadów dla dyrektora obszaru 
-  }else if (req.body.role ==="area"){
+  }else if (req.body.role === "area"){
+
     res.json(await getLeadsOwnByArea(req.body.type));
 
   //pobieranie własnyvh leadów dla dyrektora regionu
@@ -94,12 +121,12 @@ router.post('/lead_add_agent', async (req: express.Request, res: express.Respons
 
 //pobranie danych o kampaniach do wykresów
 router.post('/lead_to_charts', async (req: express.Request, res: express.Response) => {
-  res.json(await leadToCharts(req.body.user));
+  res.json(await leadToCharts(req.body));
 });
 
 //pobranie danych o statusach do wykresów
 router.post('/status_to_charts', async (req: express.Request, res: express.Response) => {
-  res.json(await statusToCharts(req.body.user));
+  res.json(await statusToCharts(req.body));
 });
 
 //pobranie danych o statusach
@@ -115,8 +142,13 @@ router.post('/status_get', async (req: express.Request, res: express.Response) =
     res.json(await getStatusByUser(req.body.owner));
   }
 
-  //kolejne bobierania dla użytkownika area i region i all-------------------------------------
+  else if(req.body.area){
+    res.json(await getStatusByArea(req.body.area));
+  }
 
+  else if(req.body.region){
+    res.json(await getStatusByRegion(req.body.region));
+  }
 });
 
 //ścieżka do zwracania statusów
@@ -140,4 +172,3 @@ router.post('/own_lead_wallet', async (req: express.Request, res: express.Respon
 router.get('/campaign', async (req: express.Request, res: express.Response) => {
   res.json(await getCampaign());
 });
-

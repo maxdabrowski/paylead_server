@@ -8,6 +8,7 @@ import { Action } from './models/Action';
 import { ChangePassword } from './models/ChangePassword';
 import { Campaign } from './models/Campaign';
 import { Commision } from './models/Commision';
+import { NewUser } from './models/newUser';
 
 //ustawienia typów pobieranych danych
 type USER = User[];
@@ -69,18 +70,86 @@ export async function changePassword(changePassword: ChangePassword ): Promise<b
     return false
   }
 
-  //pobranie użytkowników danego regionu 
+  //pobranie użytkowników danego obszaru 
   export async function getUsersByArea(structure:{area?: string, region?:string}){
     let userObj: User[];
     //pobranie użytkowników danego obszaru 
     if(structure.area){
-      userObj = (await user$).filter(p => p.area === structure.area && p.active);
-    //pobranie użytkowników danego regionu
+      userObj = (await user$).filter(p => p.area === structure.area);
+    //pobranie użytkowników danego obszaru
     } else if(structure.region){
-      userObj = (await user$).filter(p => p.area === structure.region && p.active);
+      userObj = (await user$).filter(p => p.area === structure.region);
     }
     return filterUsers(userObj)
   }
+
+  //pobranie danych dyrektora wybranego obaszru
+  export async function  getDirectorByRegion(structure:{region?:string}){
+    return (await user$).find(user => user.region === structure.region && user.role === "region");
+  }
+
+
+
+  //dodawanie nowego agenta
+  export async function addNewAgent(newAgent: NewUser){
+
+    const agent_id = (await user$).length;
+    const nickCheck = newAgent.name.toLowerCase().substr(0,3) + newAgent.surname.toLowerCase();
+    let nick = '';
+    const userExist = (await user$).find(p => p.nick === nickCheck);
+
+    if(userExist === undefined){
+      nick = nickCheck
+    }else{
+      nick = nickCheck+agent_id
+    }
+
+    const newUser: User = {
+      id: agent_id,
+      name: newAgent.name,
+      surname: newAgent.surname,
+      nick: nick,
+      password: "test",
+      region: newAgent.region,
+      area: newAgent.area,
+      role: 'agent',
+      phone: newAgent.phone,
+      mail: newAgent.mail,
+      active: true,
+    };
+    (await user$).push(newUser);
+    return true
+  }
+
+  //dodawanie nowego agenta
+  export async function changeDataUser(changeAgent: NewUser){
+    
+    if(true){
+      (await user$).find(p => p.nick === changeAgent.nick).name = changeAgent.name;
+      (await user$).find(p => p.nick === changeAgent.nick).surname = changeAgent.surname;
+      (await user$).find(p => p.nick === changeAgent.nick).phone = changeAgent.phone;
+      (await user$).find(p => p.nick === changeAgent.nick).mail = changeAgent.mail;
+    }
+    return true
+  };
+
+  //dezaktywacja agenta i przepięcie portela na innego agenta
+
+  export async function deactivateAgent(deactivatedData:{dectivatedAgent:string, agentToWalletChange: string }){
+    (await user$).find(p => p.nick === deactivatedData.dectivatedAgent).active = false;
+    
+    let agentLeads =  (await leads$).filter(p => p.owner === deactivatedData.dectivatedAgent);
+    agentLeads.forEach(async el => {
+      (await leads$).find(p => p.owner === el.owner).owner= deactivatedData.agentToWalletChange;
+    });
+
+    let agentStatuses =  (await leadsActions$).filter(p => p.owner === deactivatedData.dectivatedAgent);
+    agentStatuses.forEach(async el => {
+      (await leadsActions$).find(p => p.owner === el.owner && p.date === el.date).owner= deactivatedData.agentToWalletChange;
+    });
+
+    return true
+  };
 
   //funkcja do filtrowania użytkowników tak aby nie wysyłać haseł użytkowników
   function filterUsers (users:User[]){
@@ -144,7 +213,6 @@ function filterLeadToBuy(leads:Lead[]){
 return leadToBuy
 }
 
-
 //---POBIERANIE DANYCH O KONTAKTACH WŁASNYCH, JUŻ ZAKUPIONYCH, ORAZ AKCJA ZAKUPU------------
 
 //kontakty zakupione (z przypisanym właścicielem) z danego regionu
@@ -154,7 +222,8 @@ export async function getLeadsOwnByRegion(region: string): Promise<Lead[]>{
 
 //kontakty zakupione (z przypisanym właścicilem) z danego obszaru
 export async function getLeadsOwnByArea(area: string): Promise<Lead[]>{
-  return (await leads$).filter(p => p.owner !== "" && p.area === area);
+
+  return (await leads$).filter(p => p.area === area);
 }
 
 // kontakty zakupione (z przypisanym właścicelem) do danego użyktownika
@@ -226,6 +295,18 @@ export async function getStatusByUser(owner: string): Promise<Action[]>{
   return (await leadsActions$).filter(p => p.owner === owner);
 }
 
+export async function getStatusByArea(area: string): Promise<Action[]>{
+  return (await leadsActions$).filter(p => p.area === area);
+}
+
+export async function getStatusByRegion(region: string): Promise<Action[]>{
+  return (await leadsActions$).filter(p => p.region === region);
+}
+
+
+
+
+
 //dodanie statusu i update statusu kontaktu 
 export async function addStatus(statusData: any){
 
@@ -266,84 +347,151 @@ export async function addStatus(statusData: any){
 //---------------------DANE DO WYKONANIA WYKRESÓW-------------------------------
 
 //dane o kontaktach do wykresów 
-export async function leadToCharts(user:string) {
+export async function leadToCharts(data:{user?:string, area?:string, region?:string}) {
 
   let dataTypeLabel  = [];
   let dataTypeValue = [];
-  let dataAssetsLabel = [];
-  let dataAssetsValue = [];
-  let dataLiveLabel = [];
-  let dataLiveValue = [];
+  let dataOneLabel = [];
+  let dataOneValue = [];
+  let dataTwoLabel = [];
+  let dataTwoValue = [];
   let tabData =[];
-  let tabLive = [];
-  let tabAssets = [];
-  let leadObj = (await leads$).filter(p => p.owner === user);
-  let leadObjLive = (await leads$).filter(p => p.owner === user && p.type==="Życie");
-  let leadObjAssets = (await leads$).filter(p => p.owner === user && p.type==="Majątek");
+  let tabOne = [];
+  let tabTwo = [];
 
-  //podział na majątek i życie
-  leadObj.forEach(el => {
-    tabData.push(el.type)
-  });
-  let countData = {};
-  tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
-  for (const [key, value] of Object.entries(countData)) {
-    dataTypeLabel.push(key);
-    dataTypeValue.push(value);
-  }
+  if(data.user){
+    let leadObj = (await leads$).filter(p => p.owner === data.user);
+    let leadObjOne = (await leads$).filter(p => p.owner === data.user && p.type==="Życie");
+    let leadObjTwo = (await leads$).filter(p => p.owner === data.user && p.type==="Majątek");
 
-   //podział na kampanie Życiowe
-  leadObjLive.forEach(el => {
-    tabLive.push(el.campaign)
-  });
-  let countDataLive = {};
-  tabLive.forEach(function(i) { countDataLive[i] = (countDataLive[i]||0) + 1;});
-  for (const [key, value] of Object.entries(countDataLive)) {
-    dataLiveLabel.push(key);
-    dataLiveValue.push(value);
-  }
+     //podział na majątek i życie
+    leadObj.forEach(el => {
+      tabData.push(el.type)
+    });
 
-  //podzieł na kampanie Majątkowe
-  leadObjAssets.forEach(el => {
-    tabAssets.push(el.campaign)
-  });
-  let countDataAssets = {};
-  tabAssets.forEach(function(i) { countDataAssets[i] = (countDataAssets[i]||0) + 1;});
-  for (const [key, value] of Object.entries(countDataAssets)) {
-    dataAssetsLabel.push(key);
-    dataAssetsValue.push(value);
-  }
+    let countData = {};
+      tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+      for (const [key, value] of Object.entries(countData)) {
+        dataTypeLabel.push(key);
+        dataTypeValue.push(value);
+      };
 
+    //podział na kampanie Życiowe
+    leadObjOne.forEach(el => {
+      tabOne.push(el.campaign)
+    });
+    let countDataLive = {};
+    tabOne.forEach(function(i) { countDataLive[i] = (countDataLive[i]||0) + 1;});
+    for (const [key, value] of Object.entries(countDataLive)) {
+      dataOneLabel.push(key);
+      dataOneValue.push(value);
+    };
+
+    //podziea na kampanie Majątkowe
+    leadObjTwo.forEach(el => {
+      tabTwo.push(el.campaign)
+    });
+    let countDataAssets = {};
+    tabTwo.forEach(function(i) { countDataAssets[i] = (countDataAssets[i]||0) + 1;});
+    for (const [key, value] of Object.entries(countDataAssets)) {
+      dataTwoLabel.push(key);
+      dataTwoValue.push(value);
+    };
+  };
+  
+  if(data.area){
+    let leadObj = (await leads$).filter(p => p.area === data.area);
+    let leadObjOne = (await leads$).filter(p => p.area === data.area && p.owner === "");
+    let leadObjTwo = (await leads$).filter(p => p.area === data.area && p.owner !=="");
+
+    //podział na kupione i nie 
+    leadObj.forEach(el => {
+      if(el.owner ===""){
+        tabData.push("Nie zakupione")
+      }else if(el.owner !==""){
+        tabData.push("Zakupione")
+      }
+    });
+    let countData = {};
+    tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+          for (const [key, value] of Object.entries(countData)) {
+            dataTypeLabel.push(key);
+            dataTypeValue.push(value);
+          };
+
+      //podział na kampanie które mają właściciela
+      leadObjOne.forEach(el => {
+        tabOne.push(el.campaign)
+      });
+      let countDataLive = {};
+      tabOne.forEach(function(i) { countDataLive[i] = (countDataLive[i]||0) + 1;});
+      for (const [key, value] of Object.entries(countDataLive)) {
+        dataOneLabel.push(key);
+        dataOneValue.push(value);
+      };
+  
+      //podziea na kampanie które nie mają właściciela
+      leadObjTwo.forEach(el => {
+        tabTwo.push(el.campaign)
+      });
+      let countDataAssets = {};
+      tabTwo.forEach(function(i) { countDataAssets[i] = (countDataAssets[i]||0) + 1;});
+      for (const [key, value] of Object.entries(countDataAssets)) {
+        dataTwoLabel.push(key);
+        dataTwoValue.push(value);
+      };
+    };
+    
   //objekt zawierający dane do wykresów 
   let chartsData = {
     dataTypeLabel: dataTypeLabel,
     dataTypeValue: dataTypeValue,
-    dataAssetsLabel: dataAssetsLabel,
-    dataAssetsValue: dataAssetsValue,
-    dataLiveLabel: dataLiveLabel,
-    dataLiveValue: dataLiveValue
-  }
+    dataOneLabel: dataOneLabel,
+    dataOneValue: dataOneValue,
+    dataTwoLabel: dataTwoLabel,
+    dataTwoValue: dataTwoValue
+  };
+
 return chartsData
 }
 
+
 // dane o statusach do wykresu 
-export async function statusToCharts(user:string) {
+export async function statusToCharts(data:{user?:string, area?:string, region?: string}) {
 
   let statusLabel  = [];
   let statusValue = [];
   let tabData =[];
-  let leadObj = (await leads$).filter(p => p.owner === user);
+  let leadObj;
 
-  //podział na majątek i życie
-  leadObj.forEach(el => {
-    tabData.push(el.status)
-  });
-  let countData = {};
-  tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
-  for (const [key, value] of Object.entries(countData)) {
-    statusLabel.push(key);
-    statusValue.push(value);
-  }
+if(data.user){
+  leadObj = (await leads$).filter(p => p.owner === data.user);
+    //podział na statusy
+    leadObj.forEach(el => {
+      tabData.push(el.status)
+    });
+    let countData = {};
+    tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+    for (const [key, value] of Object.entries(countData)) {
+      statusLabel.push(key);
+      statusValue.push(value);
+    };
+};
+
+if(data.area){
+  leadObj = (await leads$).filter(p => p.area === data.area && p.status === "Sukces");
+    //podział na statusy
+    leadObj.forEach(el => {
+      tabData.push(el.owner)
+    });
+    let countData = {};
+    tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+    for (const [key, value] of Object.entries(countData)) {
+      statusLabel.push(key);
+      statusValue.push(value);
+    };
+};
+
   let chartsData = {
     statusLabel: statusLabel,
     statusValue: statusValue,
