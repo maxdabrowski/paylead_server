@@ -72,17 +72,63 @@ export async function changePassword(changePassword: ChangePassword ): Promise<b
   }
 
   //pobranie użytkowników danego obszaru 
-  export async function getUsersByArea(structure:{area?: string, region?:string}){
+  export async function getUsersByArea(structure:{area?: string}){
     let userObj: User[];
     //pobranie użytkowników danego obszaru 
-    if(structure.area){
       userObj = (await user$).filter(p => p.area === structure.area);
     //pobranie użytkowników danego obszaru
-    } else if(structure.region){
-      userObj = (await user$).filter(p => p.area === structure.region);
-    }
     return filterUsers(userObj)
   }
+
+
+
+  export async function getUsersByRegion(structure:{region?:string}){
+
+    let regionUsers = (await user$).filter(p => p.region === structure.region);
+
+    let usersWithoutPassword = [];
+  
+    regionUsers.forEach(user => {
+      const userToSend: User = {
+        id: user.id,
+        name: user.name,
+        surname: user.surname,
+        nick: user.nick,
+        region: user.region,
+        area: user.area,
+        role: user.role,
+        phone: user.phone,
+        mail: user.mail,
+        active: user.active
+      };
+      usersWithoutPassword.push(userToSend)
+    });
+
+    let areas = [];
+    let areasTabObj = [];
+
+    usersWithoutPassword.forEach(el => {
+      if(el.area !== ""){
+        areas.push(el.area)
+      }
+    });
+    const areasSet = [...new Set(areas)].sort();
+
+    areasSet.forEach(area => {
+      const areaDirector = usersWithoutPassword.find(el => el.area === area && el.role === "area");
+      const areaAgents = usersWithoutPassword.filter(el => el.area === area && el.role === "agent");
+
+      let areaObj = {
+        area: area,
+        director: areaDirector,
+        agents: areaAgents
+      };
+
+      areasTabObj.push(areaObj)
+
+    })
+    return areasTabObj
+  };
 
   //pobranie danych dyrektora wybranego obaszru
   export async function  getDirectorByRegion(structure:{region?:string}){

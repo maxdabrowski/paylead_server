@@ -28,6 +28,7 @@ import {
   getStatusByRegion,
   getBilansSummary,
   getBilansSummaryData,
+  getUsersByRegion,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -43,6 +44,11 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
 //pobranie innych użytkowników należacych do twojego obszaru 
 router.post('/structure', async (req: express.Request, res: express.Response) => {
   res.json(await getUsersByArea(req.body));
+});
+
+//pobranie innych użytkowników należacych do twojego obszaru 
+router.post('/structure_region', async (req: express.Request, res: express.Response) => {
+  res.json(await getUsersByRegion(req.body));
 });
 
 //pobranie innych użytkowników należacych do twojego obszaru 
