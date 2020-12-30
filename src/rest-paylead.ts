@@ -26,6 +26,8 @@ import {
   deactivateAgent,
   getStatusByArea,
   getStatusByRegion,
+  getBilansSummary,
+  getBilansSummaryData,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -167,6 +169,19 @@ router.post('/commision', async (req: express.Request, res: express.Response) =>
 router.post('/own_lead_wallet', async (req: express.Request, res: express.Response) => {
   res.json(await ownLeadWallet(req.body.user));
 });
+
+
+//pobranie danych o pobrnie danych o rozliczeniu 
+router.post('/bilans_summary', async (req: express.Request, res: express.Response) => {
+  res.json(await getBilansSummary(req.body));
+});
+
+//pobranie danych o pobrnie danych o rozliczeniu 
+router.post('/bilans_summary_date', async (req: express.Request, res: express.Response) => {
+  res.json(await getBilansSummaryData(req.body));
+});
+
+
 
 //pobranie danych o kampaniach
 router.get('/campaign', async (req: express.Request, res: express.Response) => {

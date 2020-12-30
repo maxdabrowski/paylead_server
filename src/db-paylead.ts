@@ -9,6 +9,7 @@ import { ChangePassword } from './models/ChangePassword';
 import { Campaign } from './models/Campaign';
 import { Commision } from './models/Commision';
 import { NewUser } from './models/newUser';
+import { Bilans } from './models/Bilans';
 
 //ustawienia typów pobieranych danych
 type USER = User[];
@@ -563,3 +564,97 @@ export async function ownLeadWallet(user:string) {
   return ownLeadTab
 } else return []
 }
+
+export async function getBilansSummaryData(data:{area:string}){
+  let dataToSelect = [];
+  let statusObj = (await leadsActions$).filter(p => p.area === data.area);
+  statusObj.forEach(el => {
+    dataToSelect.push(el.date.substr(0,7))
+  });
+  const tabSet = [...new Set(dataToSelect)].sort();
+  let dataToSelectSend = ['Wszystkie', ...tabSet];
+  return(dataToSelectSend)
+};
+
+//pobranie danych do bilansu 
+export async function getBilansSummary(data:{area?:string, region?: string; period:string}) {
+
+  if(data.area){
+    return await AreaCalculation(data.area, data.period)
+  };
+};
+
+ async function AreaCalculation(area:string, period:string){
+  let returnTab: Bilans[] = [];
+    let userArea = (await user$).filter(user => user.area === area && user.active && user.role==="agent");
+
+    if(userArea.length > 0 ){ 
+
+      return await loopAwait(userArea,returnTab, period);
+
+      async function loopAwait (userArea, returnTab, period: string ){
+
+      await userArea.forEach(async(agent: User) => {
+        //dane do obiektu 
+        let agent_b = agent.name +" " + agent.surname + " ("+agent.nick+")";
+        let count_lead_b = 0;
+        let count_success_b = 0;
+        let effectiveness_b = 0;
+        let expense_b = 0;
+        let income_b = 0;
+        let bilans_b = 0;
+        
+        let leadObj: any; 
+        let statusObj: any;
+
+        if(period === "Wszystkie"){
+        //wszystkie leady i sukcesy użykownika
+          leadObj = (await leads$).filter(p => p.owner === agent.nick);
+          statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.owner === agent.nick);
+        }else{
+          //wszystkie leady i sukcesy użykownika
+          leadObj = (await leadsActions$).filter(p => p.owner === agent.nick && p.status === "Kupiony" && p.date.substr(0,7) === period);
+          statusObj = (await leadsActions$).filter(p => p.owner === agent.nick && p.status === "Sukces" && p.date.substr(0,7) === period);
+        }
+
+        if(leadObj.length > 0){
+          //liczba leadów
+          count_lead_b = leadObj.length;
+          //liczba sukcesów
+          count_success_b = (await leads$).filter(p => p.owner === agent.nick && p.status === "Sukces").length;
+          //efektywność 
+          if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
+          else if(count_success_b === 0){effectiveness_b = 0}
+          else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
+          //suma wydatków
+          leadObj.forEach(el => {
+            expense_b += el.price 
+          });
+        };
+
+        if(statusObj.length > 0){
+          //sukcesy użtkownika
+          statusObj.forEach(el => {
+            income_b += el.income
+          });
+        };
+ 
+        //bilans
+        bilans_b= income_b - expense_b;
+     
+        let userBilans: Bilans = {
+          agent:agent_b,
+          count_lead: count_lead_b,
+          count_success:  count_success_b,
+          effectiveness: effectiveness_b,
+          expense: expense_b,
+          income: income_b,
+          bilans: bilans_b,
+        };
+
+        returnTab.push(userBilans) 
+      });
+      return  returnTab
+    };
+  }
+  };
