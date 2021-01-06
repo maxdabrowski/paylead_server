@@ -168,6 +168,66 @@ export async function changePassword(changePassword: ChangePassword ): Promise<b
     return true
   }
 
+
+  
+  //dodawanie nowego agenta
+  export async function addNewAreaDirector(changeAgent: NewUser){
+
+    const agent_id = (await user$).length;
+    const nickCheck = changeAgent.name.toLowerCase().substr(0,3) + changeAgent.surname.toLowerCase();
+    let nickNew = '';
+    const userExist = (await user$).find(p => p.nick === nickCheck);
+
+    if(userExist === undefined){
+      nickNew = nickCheck
+    }else{
+      nickNew = nickCheck+agent_id
+    }
+
+    if(true){
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").name = changeAgent.name;
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").surname = changeAgent.surname;
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").phone = changeAgent.phone;
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").mail = changeAgent.mail;
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").password = "test";
+      (await user$).find(p => p.area === changeAgent.area && p.role==="area").nick = nickNew;
+    }
+    return true
+  };
+
+  //zmiana obszaru agenta
+  export async function changeAreaUser(changeAreaUser:{nick:string, newArea:string}){
+
+    const northRegionAreas = ["Zachodnio-Pomorskie", "Pomorskie", "Warmińsko-Mazurskie", "Kujawsko-Pomorskie", "Podlaskie", "Lubuskie", "Wielkopolskie", "Mazowieckie" ];
+    const southRegionAreas = ["Dolnośląskie", "Lubelskie", "Małopolskie", "Opolskie", "Podkarpackie", "Łódzkie", "Śląskie", "Świętokrzyskie"];
+    let newRegion = "";
+
+    if(northRegionAreas.includes(changeAreaUser.newArea)){
+      newRegion = "Północ"
+    }else if(southRegionAreas.includes(changeAreaUser.newArea)){
+      newRegion = "Południe"
+    };
+
+    (await user$).find(p => p.nick === changeAreaUser.nick).area = changeAreaUser.newArea;
+    (await user$).find(p => p.nick === changeAreaUser.nick).region = newRegion;
+
+    let agentLeads =  (await leads$).filter(p => p.owner === changeAreaUser.nick);
+    agentLeads.forEach(async el => {
+      (await leads$).find(p => p.owner === el.owner).area= changeAreaUser.newArea;
+      (await leads$).find(p => p.owner === el.owner).region= newRegion;
+    });
+
+    let agentStatuses =  (await leadsActions$).filter(p => p.owner === changeAreaUser.nick);
+    agentStatuses.forEach(async el => {
+      (await leadsActions$).find(p => p.owner === el.owner).area=changeAreaUser.newArea;
+      (await leadsActions$).find(p => p.owner === el.owner).region=newRegion;
+    });
+
+    return true
+  };
+
+
+
   //dodawanie nowego agenta
   export async function changeDataUser(changeAgent: NewUser){
     
@@ -488,6 +548,49 @@ export async function leadToCharts(data:{user?:string, area?:string, region?:str
         dataTwoValue.push(value);
       };
     };
+
+    if(data.region){
+      let leadObj = (await leads$).filter(p => p.region === data.region);
+      let leadObjOne = (await leads$).filter(p => p.region === data.region && p.owner === "");
+      let leadObjTwo = (await leads$).filter(p => p.region === data.region && p.owner !=="");
+  
+      //podział na kupione i nie 
+      leadObj.forEach(el => {
+        if(el.owner ===""){
+          tabData.push("Nie zakupione")
+        }else if(el.owner !==""){
+          tabData.push("Zakupione")
+        }
+      });
+      let countData = {};
+      tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+            for (const [key, value] of Object.entries(countData)) {
+              dataTypeLabel.push(key);
+              dataTypeValue.push(value);
+            };
+  
+        //podział na kampanie które mają właściciela
+        leadObjOne.forEach(el => {
+          tabOne.push(el.campaign)
+        });
+        let countDataLive = {};
+        tabOne.forEach(function(i) { countDataLive[i] = (countDataLive[i]||0) + 1;});
+        for (const [key, value] of Object.entries(countDataLive)) {
+          dataOneLabel.push(key);
+          dataOneValue.push(value);
+        };
+    
+        //podziea na kampanie które nie mają właściciela
+        leadObjTwo.forEach(el => {
+          tabTwo.push(el.campaign)
+        });
+        let countDataAssets = {};
+        tabTwo.forEach(function(i) { countDataAssets[i] = (countDataAssets[i]||0) + 1;});
+        for (const [key, value] of Object.entries(countDataAssets)) {
+          dataTwoLabel.push(key);
+          dataTwoValue.push(value);
+        };
+      };
     
   //objekt zawierający dane do wykresów 
   let chartsData = {
@@ -530,6 +633,20 @@ if(data.area){
     //podział na statusy
     leadObj.forEach(el => {
       tabData.push(el.owner)
+    });
+    let countData = {};
+    tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
+    for (const [key, value] of Object.entries(countData)) {
+      statusLabel.push(key);
+      statusValue.push(value);
+    };
+};
+
+if(data.region){
+  leadObj = (await leads$).filter(p => p.region === data.region && p.status === "Sukces");
+    //podział na statusy
+    leadObj.forEach(el => {
+      tabData.push(el.area)
     });
     let countData = {};
     tabData.forEach(function(i) { countData[i] = (countData[i]||0) + 1;});
@@ -611,9 +728,19 @@ export async function ownLeadWallet(user:string) {
 } else return []
 }
 
-export async function getBilansSummaryData(data:{area:string}){
+export async function getBilansSummaryData(data:{area?:string, region?:string}){
+
   let dataToSelect = [];
-  let statusObj = (await leadsActions$).filter(p => p.area === data.area);
+  let statusObj: Action[];
+
+  if (data.area){
+    statusObj = (await leadsActions$).filter(p => p.area === data.area);
+  };
+
+  if (data.region){
+    statusObj = (await leadsActions$).filter(p => p.region === data.region);
+  };
+
   statusObj.forEach(el => {
     dataToSelect.push(el.date.substr(0,7))
   });
@@ -627,6 +754,10 @@ export async function getBilansSummary(data:{area?:string, region?: string; peri
 
   if(data.area){
     return await AreaCalculation(data.area, data.period)
+  };
+
+  if(data.region){
+    return await RegionCalculation(data.region, data.period)
   };
 };
 
@@ -704,3 +835,85 @@ export async function getBilansSummary(data:{area?:string, region?: string; peri
     };
   }
   };
+
+  async function RegionCalculation(region:string, period:string){
+    let returnTab: Bilans[] = [];
+
+      let areas: string[];
+      const northRegionAreas = ["Zachodnio-Pomorskie", "Pomorskie", "Warmińsko-Mazurskie", "Kujawsko-Pomorskie", "Podlaskie", "Lubuskie", "Wielkopolskie", "Mazowieckie" ];
+      const southRegionAreas = ["Dolnośląskie", "Lubelskie", "Małopolskie", "Opolskie", "Podkarpackie", "Łódzkie", "Śląskie", "Świętokrzyskie"];
+      
+      if(region === "Północ"){
+        areas = northRegionAreas
+      }
+
+      if(region === "Południe"){
+        areas = southRegionAreas
+      }
+
+      return await loopAwait(areas,returnTab, period);
+      async function loopAwait (areas:string[], returnTab, period: string ){
+
+        await areas.forEach(async(area: string) => {
+          //dane do obiektu 
+          let agent_b = area;
+          let count_lead_b = 0;
+          let count_success_b = 0;
+          let effectiveness_b = 0;
+          let expense_b = 0;
+          let income_b = 0;
+          let bilans_b = 0;
+          
+          let leadObj: any; 
+          let statusObj: any;
+  
+          if(period === "Wszystkie"){
+          //wszystkie leady i sukcesy użykownika
+            leadObj = (await leads$).filter(p => p.area === area);
+            statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.area === area);
+          }else{
+            //wszystkie leady i sukcesy użykownika
+            leadObj = (await leadsActions$).filter(p => p.area === area && p.status === "Kupiony" && p.date.substr(0,7) === period);
+            statusObj = (await leadsActions$).filter(p => p.area === area && p.status === "Sukces" && p.date.substr(0,7) === period);
+          }
+  
+          if(leadObj.length > 0){
+            //liczba leadów
+            count_lead_b = leadObj.length;
+            //liczba sukcesów
+            count_success_b = (await leads$).filter(p => p.area === area && p.status === "Sukces").length;
+            //efektywność 
+            if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
+            else if(count_success_b === 0){effectiveness_b = 0}
+            else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
+            //suma wydatków
+            leadObj.forEach(el => {
+              expense_b += el.price 
+            });
+          };
+  
+          if(statusObj.length > 0){
+            //sukcesy użtkownika
+            statusObj.forEach(el => {
+              income_b += el.income
+            });
+          };
+   
+          //bilans
+          bilans_b= income_b - expense_b;
+       
+          let userBilans: Bilans = {
+            agent:agent_b,
+            count_lead: count_lead_b,
+            count_success:  count_success_b,
+            effectiveness: effectiveness_b,
+            expense: expense_b,
+            income: income_b,
+            bilans: bilans_b,
+          };
+  
+          returnTab.push(userBilans) 
+        });
+        return  returnTab
+      };
+    };

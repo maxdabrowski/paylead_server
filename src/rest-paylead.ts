@@ -29,6 +29,8 @@ import {
   getBilansSummary,
   getBilansSummaryData,
   getUsersByRegion,
+  addNewAreaDirector,
+  changeAreaUser,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -61,9 +63,19 @@ router.post('/add_agent', async (req: express.Request, res: express.Response) =>
   res.json(await addNewAgent(req.body));
 });
 
+//dodawanie nowego dyrektora regionu
+router.post('/add_area_director', async (req: express.Request, res: express.Response) => {
+  res.json(await addNewAreaDirector(req.body));
+});
+
 //zmiana danych użytkownika
 router.post('/change_agent', async (req: express.Request, res: express.Response) => {
   res.json(await changeDataUser(req.body));
+});
+
+//zmiana obszaru agenta
+router.post('/change_area_agent', async (req: express.Request, res: express.Response) => {
+  res.json(await changeAreaUser(req.body));
 });
 
 //zmiana danych użytkownika
@@ -186,8 +198,6 @@ router.post('/bilans_summary', async (req: express.Request, res: express.Respons
 router.post('/bilans_summary_date', async (req: express.Request, res: express.Response) => {
   res.json(await getBilansSummaryData(req.body));
 });
-
-
 
 //pobranie danych o kampaniach
 router.get('/campaign', async (req: express.Request, res: express.Response) => {
