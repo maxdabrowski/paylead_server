@@ -1,5 +1,6 @@
 import * as cors from 'cors';
 import * as express from 'express';
+
 import {
   getUserToLogin,
   getLeadsToBuyByArea,
@@ -29,8 +30,13 @@ import {
   getBilansSummary,
   getBilansSummaryData,
   getUsersByRegion,
-  addNewAreaDirector,
   changeAreaUser,
+  getUsersAll,
+  addNewNotAgent,
+  getLeadsOwnAll,
+  deleteLead,
+  PasswordRecovery,
+  addLeadFromCsv,
 } from './db-paylead';
 
 export const router = express.Router();
@@ -43,10 +49,24 @@ router.post('/login', async (req: express.Request, res: express.Response) => {
   res.json(await getUserToLogin(req.body));
 });
 
+//ścieżka do logowania użytkownika
+router.post('/password_recovery', async (req: express.Request, res: express.Response) => {
+  res.json(await PasswordRecovery(req.body));
+});
+
 //pobranie innych użytkowników należacych do twojego obszaru 
-router.post('/structure', async (req: express.Request, res: express.Response) => {
+router.get('/structure_all', async (req: express.Request, res: express.Response) => {
+  res.json(await getUsersAll());
+});
+
+
+
+//pobranie innych użytkowników należacych do twojego obszaru 
+router.post('/structure_area', async (req: express.Request, res: express.Response) => {
   res.json(await getUsersByArea(req.body));
 });
+
+
 
 //pobranie innych użytkowników należacych do twojego obszaru 
 router.post('/structure_region', async (req: express.Request, res: express.Response) => {
@@ -64,8 +84,8 @@ router.post('/add_agent', async (req: express.Request, res: express.Response) =>
 });
 
 //dodawanie nowego dyrektora regionu
-router.post('/add_area_director', async (req: express.Request, res: express.Response) => {
-  res.json(await addNewAreaDirector(req.body));
+router.post('/add_director', async (req: express.Request, res: express.Response) => {
+  res.json(await addNewNotAgent(req.body));
 });
 
 //zmiana danych użytkownika
@@ -125,18 +145,32 @@ router.post('/lead_own', async (req: express.Request, res: express.Response) => 
 
   //pobieranie własnych leadów dla dyrektora obszaru 
   }else if (req.body.role === "area"){
-
     res.json(await getLeadsOwnByArea(req.body.type));
 
   //pobieranie własnyvh leadów dla dyrektora regionu
   }else if(req.body.role ==="region"){
     res.json(await getLeadsOwnByRegion(req.body.type));
-  }
+  
+    //pobieranie wszystkich leadów
+  }else if(req.body.role ==="admin"){
+  res.json(await getLeadsOwnAll());
+}
+  
 });
 
 //ścieżka do dodawania leada z własnego konta 
 router.post('/lead_add_agent', async (req: express.Request, res: express.Response) => {
     res.json(await addLeadOwn(req.body));
+});
+
+//ścieżka do dodawania leada z własnego konta 
+router.post('/lead_add_csv_file', async (req: express.Request, res: express.Response) => {
+  res.json(await addLeadFromCsv(req.body));
+});
+
+//ścieżka do usuwania leada 
+router.post('/lead_delete', async (req: express.Request, res: express.Response) => {
+  res.json(await deleteLead(req.body));
 });
 
 //pobranie danych o kampaniach do wykresów
@@ -164,6 +198,10 @@ router.post('/status_get', async (req: express.Request, res: express.Response) =
 
   else if(req.body.area){
     res.json(await getStatusByArea(req.body.area));
+  }
+
+  else if(req.body.region){
+    res.json(await getStatusByRegion(req.body.region));
   }
 
   else if(req.body.region){

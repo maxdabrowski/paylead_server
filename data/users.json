@@ -5,11 +5,11 @@
     "surname": "Dąbrowski",
     "nick":"makdabrowski",
     "password":"test",
-    "region":"",
+    "region":"Administrator",
     "area":"",
     "role":"admin", 
     "phone": "723325576",
-    "mail": "makdabrowski@pzu.pl",
+    "mail": "maxdabrowski93@o2.pl",
     "active": true
   },
   {
@@ -18,7 +18,7 @@
     "surname": "Almerski",
     "nick":"pioalmerski",
     "password":"test",
-    "region":"",
+    "region":"Dyrektor Centralny",
     "area":"",
     "role":"admin",
     "phone": "564675678",
