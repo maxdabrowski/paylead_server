@@ -967,7 +967,6 @@ export async function getBilansSummary(data:{area?:string, region?: string; peri
             });
           };
   
-  
           if(period === "Wszystkie"){
           //wszystkie leady i sukcesy obszaru
             leadObj = (await leads$).filter(p => p.area === area);
