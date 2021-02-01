@@ -43,7 +43,6 @@ export const router = express.Router();
 router.use(cors());
 router.use(express.json());
 
-
 //ścieżka do logowania użytkownika
 router.post('/login', async (req: express.Request, res: express.Response) => {
   res.json(await getUserToLogin(req.body));
@@ -59,14 +58,10 @@ router.get('/structure_all', async (req: express.Request, res: express.Response)
   res.json(await getUsersAll());
 });
 
-
-
 //pobranie innych użytkowników należacych do twojego obszaru 
 router.post('/structure_area', async (req: express.Request, res: express.Response) => {
   res.json(await getUsersByArea(req.body));
 });
-
-
 
 //pobranie innych użytkowników należacych do twojego obszaru 
 router.post('/structure_region', async (req: express.Request, res: express.Response) => {
@@ -109,7 +104,6 @@ router.post('/change_password', async (req: express.Request, res: express.Respon
   res.json(await changePassword(req.body));
 });
 
-
 //zwracanie leadów do kupienia w zalezniści od roli i obszaru
 router.post('/lead_buy', async (req: express.Request, res: express.Response) => {
 
@@ -130,7 +124,6 @@ router.post('/lead_buy', async (req: express.Request, res: express.Response) => 
     res.json(await getLeadsToBuyByRegion(req.body.type));
   };
 });
-
 
 //ścieżka do zwracania leadów własnych
 router.post('/lead_own', async (req: express.Request, res: express.Response) => {
@@ -155,7 +148,6 @@ router.post('/lead_own', async (req: express.Request, res: express.Response) => 
   }else if(req.body.role ==="admin"){
   res.json(await getLeadsOwnAll());
 }
-  
 });
 
 //ścieżka do dodawania leada z własnego konta 
@@ -214,7 +206,6 @@ router.post('/status_post', async (req: express.Request, res: express.Response) 
   res.json(await addStatus(req.body));
   //kolejne bobierania dla użytkownika area i region i all-----------------------------
 });
-
 
 //pobranie danych o prowizjach
 router.post('/commision', async (req: express.Request, res: express.Response) => {
