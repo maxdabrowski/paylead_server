@@ -499,7 +499,7 @@ export async function addStatus(statusData: any){
     (await leads$).find(lead => lead.lead_id === statusData.lead_id).status = statusData.status;
     const lead = (await leads$).find(lead => lead.lead_id === statusData.lead_id);
     let policyData: string = '';
-    let incomeData: number = 0;
+    let incomeData = 0;
     if(statusData.success.length > 0 ){
       policyData = statusData.success[0].policy;
       incomeData = parseInt(statusData.success[0].income);
