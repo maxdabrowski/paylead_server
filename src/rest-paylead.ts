@@ -44,6 +44,12 @@ router.use(cors());
 router.use(express.json());
 
 //ścieżka do logowania użytkownika
+router.get('/', async (req: express.Request, res: express.Response) => {
+  res.send("Aplikacja paylead działa poprawnie");
+});
+
+
+//ścieżka do logowania użytkownika
 router.post('/login', async (req: express.Request, res: express.Response) => {
   res.json(await getUserToLogin(req.body));
 });
