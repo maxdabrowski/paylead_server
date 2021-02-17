@@ -27,7 +27,6 @@ import {
   deactivateAgent,
   getStatusByArea,
   getStatusByRegion,
-  getBilansSummary,
   getBilansSummaryData,
   getUsersByRegion,
   changeAreaUser,
@@ -37,7 +36,9 @@ import {
   deleteLead,
   PasswordRecovery,
   addLeadFromCsv,
-} from './db-paylead';
+  getBilansSummaryArea,
+  getBilansSummaryRegion,
+} from './db-paylead-mdb';
 
 export const router = express.Router();
 router.use(cors());
@@ -47,7 +48,6 @@ router.use(express.json());
 router.get('/', async (req: express.Request, res: express.Response) => {
   res.send("Aplikacja paylead działa poprawnie");
 });
-
 
 //ścieżka do logowania użytkownika
 router.post('/login', async (req: express.Request, res: express.Response) => {
@@ -103,7 +103,6 @@ router.post('/change_area_agent', async (req: express.Request, res: express.Resp
 router.post('/deactivate_agent', async (req: express.Request, res: express.Response) => {
   res.json(await deactivateAgent(req.body));
 });
-
 
 //zmiana hasła
 router.post('/change_password', async (req: express.Request, res: express.Response) => {
@@ -225,9 +224,15 @@ router.post('/own_lead_wallet', async (req: express.Request, res: express.Respon
 
 
 //pobranie danych o pobrnie danych o rozliczeniu 
-router.post('/bilans_summary', async (req: express.Request, res: express.Response) => {
-  res.json(await getBilansSummary(req.body));
+router.post('/bilans_summary_area', async (req: express.Request, res: express.Response) => {
+  res.json(await getBilansSummaryArea(req.body));
 });
+
+//pobranie danych o pobrnie danych o rozliczeniu 
+router.post('/bilans_summary_region', async (req: express.Request, res: express.Response) => {
+  res.json(await getBilansSummaryRegion(req.body));
+});
+
 
 //pobranie danych o pobrnie danych o rozliczeniu 
 router.post('/bilans_summary_date', async (req: express.Request, res: express.Response) => {

@@ -1,4 +1,5 @@
 export interface Lead {
+  _id?: any;
   lead_id: number;
   name: string;
   surname: string;

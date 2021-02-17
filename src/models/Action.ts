@@ -1,4 +1,5 @@
 export interface Action {
+  _id?: any;
   lead_id: number;
   owner: string;
   area: string;

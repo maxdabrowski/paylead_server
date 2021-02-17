@@ -1,5 +1,3 @@
-import * as fs from 'fs';
-import * as util from 'util';
 import * as nodemailer from 'nodemailer';
 import { User } from './models/User';
 import { LoginData } from './models/LoginData';
@@ -12,62 +10,47 @@ import { Commision } from './models/Commision';
 import { NewUser } from './models/newUser';
 import { Bilans } from './models/Bilans';
 
-//ustawienia typów pobieranych danych
-type USER = User[];
-type LEAD = Lead[];
-type ACTION = Action [];
-type CAMPAIGN = Campaign [];
-
-//ustawienie zmiennych do pobierania poszczególnych danych z bazy 
-const readFile = util.promisify(fs.readFile);
-
-const user$: Promise<USER> = readFile('./data/users.json', 'utf8')
-  .then(JSON.parse, console.error);
-
-const leads$: Promise<LEAD> = readFile('./data/leads.json', 'utf8')
-  .then(JSON.parse, console.error)
-
-const leadsActions$: Promise<ACTION> = readFile('./data/leads_actions.json', 'utf8')
-  .then(JSON.parse, console.error)
-
-const campaigns$: Promise<CAMPAIGN> = readFile('./data/campaign.json', 'utf8')
-  .then(JSON.parse, console.error)
-
+const UserMdb = require('./models/mongoDBModels/users');
+const LeadMdb = require('./models/mongoDBModels/leads');
+const ActionMdb = require('./models/mongoDBModels/leadsActions');
+const CampaignMdb = require('./models/mongoDBModels/campaign');
 
 //----------------POBIERANIE DANYCH DOTYCZACYCH AGENTA--------------------
 
 //logowanie użytkownika
 export async function getUserToLogin(loginData: LoginData): Promise<LoginRes> {
-  const user = (await user$).find(user => user.nick === loginData.nick);
-  if(user !== undefined){
+  const user = await UserMdb.find({nick: loginData.nick});
+  
+  if(user[0]!== undefined){
     const userToSend: User = {
-      id: user.id,
-      name: user.name,
-      surname: user.surname,
-      nick: user.nick,
-      region: user.region,
-      area: user.area,
-      role: user.role,
-      phone: user.phone,
-      mail: user.mail,
-      active:user.active
+      id: user[0].id,
+      name: user[0].name,
+      surname: user[0].surname,
+      nick: user[0].nick,
+      region: user[0].region,
+      area: user[0].area,
+      role: user[0].role,
+      phone: user[0].phone,
+      mail: user[0].mail,
+      active:user[0].active
     };
-    if(user.password === loginData.password && user.active)
+    if(user[0].password === loginData.password && user[0].active){
       return ({loginError:false, loginUser: userToSend})
+    }
     else
       return ( {loginError:true})
-  }
+    }
   else
-    return ( {loginError:true})
+  return ( {loginError:true})
 };
 
 //odzyskiwanie hasła
 export async function PasswordRecovery(login:{login:string}){
-  const user = (await user$).find(user => user.nick === login.login && user.active);
-  if(user === undefined){
+  const user = await UserMdb.find({nick: login.login});
+  if(user[0] === undefined){
     return false
   }else{
-    sendMail(user)
+    sendMail(user[0])
     return true  
   }
 };
@@ -75,7 +58,7 @@ export async function PasswordRecovery(login:{login:string}){
 //funkcja do wysyłania maila z nowym hasłem
 export async function sendMail(user:User) {
   let newPassword = 'NoweHaslo1234';
-  (await user$).find(user => user.nick === user.nick).password = newPassword;
+  await UserMdb.updateOne({nick: user.nick}, {password: newPassword});
   var transporter = nodemailer.createTransport({
     service: 'gmail',
     auth:{
@@ -92,19 +75,16 @@ export async function sendMail(user:User) {
     <p>Ten mail mail pełni rolę informacyjną nie odpowaidaj na niego.</p>`
   };
   transporter.sendMail(mailOptions, function(error, info){
-    if(error){
+    if(error)
       console.log(error)
-    }else {
-      console.log('Email sent:' + info.response)
-    }
   });
 };
   
 //zmiana hasła użytkownika
 export async function changePassword(changePassword: ChangePassword ): Promise<boolean> {
-  const user = (await user$).find(user => user.nick === changePassword.nick);
-  if(user.password === changePassword.password){
-    (await user$).find(user => user.nick === changePassword.nick).password = changePassword.newPassword
+  const user = await UserMdb.find({nick: changePassword.nick});
+  if(user[0].password === changePassword.password){
+    await UserMdb.updateOne({nick: user[0].nick}, {password: changePassword.newPassword});
     return true
     }
   else
@@ -115,7 +95,7 @@ export async function changePassword(changePassword: ChangePassword ): Promise<b
 export async function getUsersByArea(structure:{area?: string}){
   let userObj: User[];
   //pobranie użytkowników danego obszaru 
-  userObj = (await user$).filter(p => p.area === structure.area);
+  userObj = await UserMdb.find({area: structure.area});
   //pobranie użytkowników danego obszaru
   return filterUsers(userObj)
 };
@@ -123,14 +103,14 @@ export async function getUsersByArea(structure:{area?: string}){
 export async function getUsersAll(){
   let userObj: User[];
   //pobranie użytkowników danego obszaru 
-  userObj = (await user$);
+    userObj = await UserMdb.find({});
   //pobranie użytkowników danego obszaru
   return filterUsers(userObj)  
 };
 
 //pobranie użytkowników danego regionu
 export async function getUsersByRegion(structure:{region?:string}){
-  let regionUsers = (await user$).filter(p => p.region === structure.region);
+  let regionUsers = await UserMdb.find({region: structure.region});
   let usersWithoutPassword = [];
   regionUsers.forEach(user => {
     const userToSend: User = {
@@ -170,23 +150,26 @@ export async function getUsersByRegion(structure:{region?:string}){
 
 //pobranie danych dyrektora wybranego obaszru
 export async function  getDirectorByRegion(structure:{region?:string}){
-  return (await user$).find(user => user.region === structure.region && user.role === "region");
+  let direcorByRegion = await UserMdb.find({region: structure.region, role: "region"});
+  return direcorByRegion[0];
 };
 
-
+//-----------------------------------------------------------------------------------------------------------------------------------------
 
 //dodawanie nowego agenta
 export async function addNewAgent(newAgent: NewUser){
-  const agent_id = (await user$).length;
+  const agentTabLength = await UserMdb.find({});
+  const agent_id = agentTabLength.length + 1;
   const nickCheck = newAgent.name.toLowerCase().substr(0,3) + newAgent.surname.toLowerCase();
   let nick = '';
-  const userExist = (await user$).find(p => p.nick === nickCheck);
-  if(userExist === undefined){
+  const userExist = await UserMdb.find({nick: nickCheck});;
+  if(userExist[0] === undefined){
     nick = nickCheck
   }else{
     nick = nickCheck+agent_id
   };
-  const newUser: User = {
+
+  const newUser = new UserMdb ({
     id: agent_id,
     name: newAgent.name,
     surname: newAgent.surname,
@@ -198,30 +181,32 @@ export async function addNewAgent(newAgent: NewUser){
     phone: newAgent.phone,
     mail: newAgent.mail,
     active: true,
-  };
-  (await user$).push(newUser);
+  });
+
+  newUser.save();
   return true
 };
   
-//dodawanie nowego agenta
+//dodawanie nowego nie agenta
 export async function addNewNotAgent(changeAgent: NewUser){
-  const agent_id = (await user$).length;
+  const agentTabLength = await UserMdb.find({});
+  const agent_id = agentTabLength.length + 1;
   const nickCheck = changeAgent.name.toLowerCase().substr(0,3) + changeAgent.surname.toLowerCase();
   let nickNew = '';
-  const userExist = (await user$).find(p => p.nick === nickCheck);
+  const userExist = await UserMdb.find({nick: nickCheck});;
   if(userExist === undefined){
     nickNew = nickCheck
   }else{
     nickNew = nickCheck+agent_id
   };
-  if(true){
-    (await user$).find(p => p.nick === changeAgent.nick).name = changeAgent.name;
-    (await user$).find(p => p.nick === changeAgent.nick).surname = changeAgent.surname;
-    (await user$).find(p => p.nick === changeAgent.nick).phone = changeAgent.phone;
-    (await user$).find(p => p.nick === changeAgent.nick).mail = changeAgent.mail;
-    (await user$).find(p => p.nick === changeAgent.nick).password = "test";
-    (await user$).find(p => p.nick === changeAgent.nick).nick = nickNew;
-  }
+  await UserMdb.updateOne({nick: changeAgent.nick}, {
+    name: changeAgent.name,
+    surname: changeAgent.surname,
+    phone: changeAgent.phone,
+    mail: changeAgent.mail,
+    password: "test",
+    nick: nickNew
+  });
   return true
 };
 
@@ -235,41 +220,51 @@ export async function changeAreaUser(changeAreaUser:{nick:string, newArea:string
   }else if(southRegionAreas.includes(changeAreaUser.newArea)){
     newRegion = "Południe"
   };
-  (await user$).find(p => p.nick === changeAreaUser.nick).area = changeAreaUser.newArea;
-  (await user$).find(p => p.nick === changeAreaUser.nick).region = newRegion;
-  let agentLeads =  (await leads$).filter(p => p.owner === changeAreaUser.nick);
-  agentLeads.forEach(async el => {
-    (await leads$).find(p => p.owner === el.owner).area= changeAreaUser.newArea;
-    (await leads$).find(p => p.owner === el.owner).region= newRegion;
+
+  await UserMdb.updateOne({nick: changeAreaUser.nick}, {
+    area: changeAreaUser.newArea,
+    region: newRegion,
   });
-  let agentStatuses =  (await leadsActions$).filter(p => p.owner === changeAreaUser.nick);
-  agentStatuses.forEach(async el => {
-    (await leadsActions$).find(p => p.owner === el.owner).area=changeAreaUser.newArea;
-    (await leadsActions$).find(p => p.owner === el.owner).region=newRegion;
+
+  await LeadMdb.updateMany({owner: changeAreaUser.nick}, {
+    area: changeAreaUser.newArea,
+    region: newRegion,
   });
+  
+  await ActionMdb.updateMany({owner: changeAreaUser.nick}, {
+    area: changeAreaUser.newArea,
+    region: newRegion,
+  });
+
   return true
 };
 
 //zmiana danych agenta
-export async function changeDataUser(changeAgent: NewUser){   
-  (await user$).find(p => p.nick === changeAgent.nick).name = changeAgent.name;
-  (await user$).find(p => p.nick === changeAgent.nick).surname = changeAgent.surname;
-  (await user$).find(p => p.nick === changeAgent.nick).phone = changeAgent.phone;
-  (await user$).find(p => p.nick === changeAgent.nick).mail = changeAgent.mail;
+export async function changeDataUser(changeAgent: NewUser){ 
+  await UserMdb.updateOne({nick: changeAgent.nick}, {
+    name: changeAgent.name,
+    surname: changeAgent.surname,
+    phone: changeAgent.phone,
+    mail: changeAgent.mail
+  });
 return true
 };
 
 //dezaktywacja agenta i przepięcie portela na innego agenta
 export async function deactivateAgent(deactivatedData:{dectivatedAgent:string, agentToWalletChange: string }){
-  (await user$).find(p => p.nick === deactivatedData.dectivatedAgent).active = false;  
-  let agentLeads =  (await leads$).filter(p => p.owner === deactivatedData.dectivatedAgent);
-  agentLeads.forEach(async el => {
-    (await leads$).find(p => p.owner === el.owner).owner= deactivatedData.agentToWalletChange;
+
+  await UserMdb.updateOne({nick: deactivatedData.dectivatedAgent}, {
+    active: false
   });
-  let agentStatuses =  (await leadsActions$).filter(p => p.owner === deactivatedData.dectivatedAgent);
-  agentStatuses.forEach(async el => {
-    (await leadsActions$).find(p => p.owner === el.owner && p.date === el.date).owner= deactivatedData.agentToWalletChange;
+
+  await LeadMdb.updateMany({owner: deactivatedData.dectivatedAgent}, {
+    owner: deactivatedData.agentToWalletChange,
   });
+  
+  await ActionMdb.updateMany({owner: deactivatedData.dectivatedAgent}, {
+    owner: deactivatedData.agentToWalletChange,
+  });
+
   return true
 };
 
@@ -298,19 +293,19 @@ return usersToSend
 
 //kontakty to kupienia wszystkie 
 export async function getLeadsToBuy(): Promise<Lead[]>{
-  let leadObj = (await leads$).filter(p => p.owner === "")
+  let leadObj = await LeadMdb.find({owner: ""});
   return filterLeadToBuy(leadObj)
 };
 
 //kontakty to kupienia z podanego Region
 export async function getLeadsToBuyByRegion(region: string): Promise<Lead[]>{
-  let leadObj = (await leads$).filter(p => p.owner === "" && p.region === region);
+  let leadObj = await LeadMdb.find({owner: "", region: region});
   return filterLeadToBuy(leadObj)
 };
 
 //kontakty to kupienia z podanego Area
 export async function getLeadsToBuyByArea(area: string): Promise<Lead[]>{
-  let leadObj = (await leads$).filter(p => p.owner === "" && p.area === area);
+  let leadObj = await LeadMdb.find({owner: "", area: area});
   return filterLeadToBuy(leadObj)
 };
 
@@ -335,70 +330,140 @@ return leadToBuy
 
 //kontakty zakupione (z przypisanym właścicielem) z danego regionu
 export async function getLeadsOwnByRegion(region: string): Promise<Lead[]>{
-  return (await leads$).filter(p => p.region === region);
+  let leadObj = await LeadMdb.find({region: region});
+  return leadObj;
 };
 
 //kontakty zakupione (z przypisanym właścicilem) wszystkie
 export async function getLeadsOwnAll(): Promise<Lead[]>{
-  return (await leads$);
+  let leadObj = await LeadMdb.find({});
+  return leadObj;
 };
 
 //kontakty zakupione (z przypisanym właścicilem) z danego obszaru
 export async function getLeadsOwnByArea(area: string): Promise<Lead[]>{
-  return (await leads$).filter(p => p.area === area);
+  let leadObj = await LeadMdb.find({area: area});
+  return leadObj;
 };
 
 // kontakty zakupione (z przypisanym właścicelem) do danego użyktownika
 export async function getLeadsOwnByUser(user: string): Promise<Lead[]>{
-  return (await leads$).filter(p => p.owner === user);
+  let leadObj = await LeadMdb.find({owner: user});
+  return leadObj;
 };
 
 // kontakty zakupione (z przypisanym właścicilem) do danego identyfikatora 
 export async function getLeadsOwnById(lead_id: number): Promise<Lead[]>{
-  return (await leads$).filter(p => p.lead_id === lead_id);
+  let leadObj = await LeadMdb.find({lead_id: lead_id});
+  return leadObj;
 };
 
 //funkcja przypisująca właściciela do danego leada po kupieniu go i dodanie akcji kupna
 export async function updateBuyLead(agent: string, lead_id: number){
-  const lead = (await leads$).find(lead => lead.lead_id === lead_id);
-  const action: Action = {
-    lead_id: lead.lead_id,
+  let lead = await LeadMdb.find({lead_id: lead_id});
+
+  const newAction = new ActionMdb ({
+    lead_id: lead[0].lead_id,
     owner: agent,
-    area: lead.area,
-    region: lead.region,
-    date: new Date().toLocaleDateString("nl",{year:"numeric",month:"2-digit", day:"2-digit"}) +' '+ new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-    status: "Kupiony",
-    note: '',
-    policy: '',
-    income: 0
-  };
-  (await leadsActions$).push(action);
-  (await leads$).find(lead => lead.lead_id === lead_id).owner=agent;
-  (await leads$).find(lead => lead.lead_id === lead_id).status="Kupiony";
+    area: lead[0].area,
+    region: lead[0].region,
+    date: getCurrentDate(),
+    status: 'Kupiony',
+    note: "",
+    policy: "",
+    income: 0,
+  });
+  newAction.save();
+
+  await LeadMdb.updateOne({lead_id: lead_id}, {
+    owner: agent,
+    status: "Kupiony"
+  });
 };
+
+//poiberanie daty i ustawianie w dobrym formacie 
+function getCurrentDate(){
+  const dateNow = new Date();
+  const year = dateNow.getFullYear();
+  let month = dateNow.getMonth()+1;
+  let day = dateNow.getDate();
+  let hour = dateNow.getHours()+1;
+  let minute = dateNow.getMinutes()+1;
+  let monthString: string;
+  let dayString: string;
+  let hourString: string;
+  let minuteString: string;
+
+  if(month <10){
+    monthString = '0' +  month;
+  }else{
+    monthString = month.toString();
+  }
+
+  if(day <10){
+    dayString = '0' + day;
+  }else{
+    dayString = day.toString();
+  }
+  if(hour <10){
+    hourString = '0' + hour;
+  }else{
+    hourString = hour.toString();
+  }
+  if(minute <10){
+    minuteString = '0' + minute;
+  }else{
+    minuteString = minute.toString();
+  }
+  const dateFormat = year + '-' + monthString + '-' + dayString + " " + hourString + ':' + minuteString;
+
+return dateFormat
+};
+
 
 //--------------DODAWANIE WŁASNEGO KONTAKTU Z FORMULARZA-----------------
 
 export async function addLeadOwn(lead: Lead ) {
-  let newLead = lead;
-  const lead_id = (await leads$).length + 1 + Math.floor(Math.random()*1000);
-  newLead.lead_id = lead_id;
-  //stworznie nowej akcji w czasie dodania własnego kontaktu
-  const action: Action = {
-    lead_id: lead_id,
-    owner: lead.owner,
-    area: lead.area,
-    region: lead.region,
-    date: new Date().toLocaleDateString("nl",{year:"numeric",month:"2-digit", day:"2-digit"}) +' '+ new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-    status: lead.status,
-    note: '',
-    policy: '',
-    income: 0
-  };
-  //dodanie nowego kontaktu
-  (await leads$).push(newLead);
-  //dodanie akcji o dodaniu własnego kontaktu
-  (await leadsActions$).push(action);
+  let leadAll= await LeadMdb.find({});
+  const lead_id = leadAll.length +  1 + Math.floor(Math.random()*1000);
+
+    //dodanie nowego kontaktu
+    const newLead = new LeadMdb ({
+      lead_id: lead_id,
+      name: lead.name,
+      surname: lead.surname,
+      phone: lead.phone,
+      mail: lead.mail,
+      town: lead.town,
+      post_code: lead.post_code,
+      adress: lead.adress,
+      client_type: lead.client_type,
+      age: lead.age,
+      type: lead.type,
+      campaign: lead.campaign,
+      product: lead.product,
+      campaign_image:lead.campaign_image,
+      price:lead.price,
+      region:lead.region,
+      area:lead.area,
+      owner:lead.owner,
+      status:lead.status,
+    });
+    newLead.save();
+
+    const newAction = new ActionMdb ({
+      lead_id: lead_id,
+      owner: lead.owner,
+      area: lead.area,
+      region: lead.region,
+      date: getCurrentDate(),
+      status: lead.status,
+      note: "",
+      policy: "",
+      income: 0,
+    });
+    newAction.save();
+  
   return true
 };
 
@@ -412,7 +477,8 @@ export async function addLeadFromCsv(leadFile: {data: string} ) {
           let id = 3000+Math.floor(Math.random()*(1000))+Math.floor(Math.random()*(1000))+Math.floor(Math.random() * (1000));
           if(oneLeadArr[15] !== undefined){
             const slashInArea =  oneLeadArr[15].length;
-            let newLead:Lead = {
+
+            const newLead = new LeadMdb ({
               lead_id: id,
               name: oneLeadArr[0],
               surname: oneLeadArr[1],
@@ -432,8 +498,9 @@ export async function addLeadFromCsv(leadFile: {data: string} ) {
               area:oneLeadArr[15].substring(0, slashInArea-2),
               owner: "",
               status: "Wgrany"
-            };      
-            (await leads$).push(newLead);
+            }); 
+            newLead.save();
+            
           }else
           {return false}; 
         }else{return false};
@@ -445,77 +512,71 @@ export async function addLeadFromCsv(leadFile: {data: string} ) {
 
 //funkcja do usuwania leadów
 export async function deleteLead(lead:{lead_id:number}) {
-  let indexStatus = [];
-  const leadToDelete = (await leads$).find(p => p.lead_id = lead.lead_id);
-  const indexElementToDelete = (await leads$).indexOf(leadToDelete);
-  const statusToDelete = (await leadsActions$).filter(p => p.lead_id = lead.lead_id);
-  if(indexElementToDelete !== -1){
-    (await leads$).splice(indexElementToDelete,1);
-  };
-  if(statusToDelete.length > 0){
-    statusToDelete.forEach(async el =>{
-      let indexAction = (await leadsActions$).indexOf(el);
-      indexStatus.push(indexAction)
-  });
-  indexStatus.forEach(async index =>{
-    (await leadsActions$).splice(index,1);
-  });
-  }
-  return true
+  await LeadMdb.deleteOne({lead_id: lead.lead_id});
+  await ActionMdb.deleteMany({lead_id: lead.lead_id});
+return true
 };
 
 //------------POBIERANIE DANYCH DOTYCZĄCYCH STATUSÓW KONTKATÓW-----------
 
 //pobranie statusów po lead id
 export async function getStatusById(lead_id: number): Promise<Action[]>{
-  return (await leadsActions$).filter(p => p.lead_id === lead_id);
+   let actionObj = await ActionMdb.find({lead_id: lead_id});
+  return actionObj;
 };
 
 //pobranie statusów po lead nick
 export async function getStatusByUser(owner: string): Promise<Action[]>{
-  return (await leadsActions$).filter(p => p.owner === owner);
+  let actionObj = await ActionMdb.find({owner: owner});
+  return actionObj;
 };
 
 //pobranie statusów po obszarze
 export async function getStatusByArea(area: string): Promise<Action[]>{
-  return (await leadsActions$).filter(p => p.area === area);
+  let actionObj = await ActionMdb.find({area: area});
+  return actionObj;
 };
 
 //pobranie statusów po regionie
 export async function getStatusByRegion(region: string): Promise<Action[]>{
+  let actionObj: Action[];
   if( region === "Wszystkie"){
-    return (await leadsActions$);
+    actionObj = await ActionMdb.find({});
+    return actionObj;
   }else{
-    return (await leadsActions$).filter(p => p.region === region);
+    actionObj = await ActionMdb.find({region: region});
+    return actionObj;
   }
 };
 
 //dodanie statusu i update statusu kontaktu 
 export async function addStatus(statusData: any){
-  const successStatus = (await leadsActions$).find(status => status.lead_id === statusData.lead_id && status.status === "Sukces");
-  if (successStatus !== undefined){
+  const successStatus = await ActionMdb.find({lead_id: statusData.lead_id, status: "Sukces"});
+  if (successStatus[0] !== undefined){
     return false
   }else{
-    (await leads$).find(lead => lead.lead_id === statusData.lead_id).status = statusData.status;
-    const lead = (await leads$).find(lead => lead.lead_id === statusData.lead_id);
+    await LeadMdb.updateOne({lead_id: statusData.lead_id}, {status: statusData.status});
+    const lead = await LeadMdb.find({lead_id:statusData.lead_id}); 
+
     let policyData: string = '';
     let incomeData = 0;
     if(statusData.success.length > 0 ){
       policyData = statusData.success[0].policy;
       incomeData = parseInt(statusData.success[0].income);
     };
-    const action: Action = {
-      lead_id: lead.lead_id,
-      owner: lead.owner,
-      area: lead.area,
-      region: lead.region,
+
+    const newAction = new ActionMdb ({
+      lead_id: lead[0].lead_id,
+      owner: lead[0].owner,
+      area: lead[0].area,
+      region: lead[0].region,
+      date: getCurrentDate(),
       status: statusData.status,
-      date: new Date().toLocaleDateString("nl",{year:"numeric",month:"2-digit", day:"2-digit"}) +' '+ new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
       note: statusData.note,
       policy: policyData,
       income: incomeData,
-    };
-    (await leadsActions$).push(action);
+    });
+    newAction.save();
     return true
   };
 };
@@ -535,9 +596,9 @@ export async function leadToCharts(data:{user?:string, area?:string, region?:str
   let tabTwo = [];
 
   if(data.user){
-    let leadObj = (await leads$).filter(p => p.owner === data.user);
-    let leadObjOne = (await leads$).filter(p => p.owner === data.user && p.type==="Życie");
-    let leadObjTwo = (await leads$).filter(p => p.owner === data.user && p.type==="Majątek");
+    let leadObj =  await LeadMdb.find({owner: data.user});
+    let leadObjOne =  await LeadMdb.find({owner: data.user, type: "Życie"});
+    let leadObjTwo =  await LeadMdb.find({owner: data.user, type: "Majątek"});
 
      //podział na majątek i życie
     leadObj.forEach(el => {
@@ -575,9 +636,9 @@ export async function leadToCharts(data:{user?:string, area?:string, region?:str
   };
   
   if(data.area){
-    let leadObj = (await leads$).filter(p => p.area === data.area);
-    let leadObjOne = (await leads$).filter(p => p.area === data.area && p.owner === "");
-    let leadObjTwo = (await leads$).filter(p => p.area === data.area && p.owner !=="");
+    let leadObj =  await LeadMdb.find({area: data.area});
+    let leadObjOne =  await LeadMdb.find({area: data.area, owner: ""});
+    let leadObjTwo =  await LeadMdb.find({area: data.area, owner: {$ne: ""}});
 
     //podział na kupione i nie 
     leadObj.forEach(el => {
@@ -623,13 +684,15 @@ export async function leadToCharts(data:{user?:string, area?:string, region?:str
       let leadObjTwo = [];
 
       if(data.region === "Wszystkie"){
-        leadObj = (await leads$)
-        leadObjOne = (await leads$).filter(p => p.owner === "");
-        leadObjTwo = (await leads$).filter(p => p.owner !=="");
+        leadObj =  await LeadMdb.find({});
+        leadObjOne =  await LeadMdb.find({owner: ""});
+        leadObjTwo =  await LeadMdb.find({owner: {$ne: ""}});
+    
       }else{
-        leadObj = (await leads$).filter(p => p.region === data.region);
-        leadObjOne = (await leads$).filter(p => p.region === data.region && p.owner === "");
-        leadObjTwo = (await leads$).filter(p => p.region === data.region && p.owner !=="");
+        leadObj =  await LeadMdb.find({region: data.region});
+        leadObjOne =  await LeadMdb.find({region: data.region, owner: ""});
+        leadObjTwo =  await LeadMdb.find({region: data.region, owner: {$ne: ""}});
+    
       }
 
       //podział na kupione i nie 
@@ -692,7 +755,7 @@ export async function statusToCharts(data:{user?:string, area?:string, region?: 
   let leadObj;
 
 if(data.user){
-  leadObj = (await leads$).filter(p => p.owner === data.user);
+  leadObj =  await LeadMdb.find({owner: data.user});
     //podział na statusy
     leadObj.forEach(el => {
       tabData.push(el.status)
@@ -706,7 +769,7 @@ if(data.user){
 };
 
 if(data.area){
-  leadObj = (await leads$).filter(p => p.area === data.area && p.status === "Sukces");
+  leadObj =  await LeadMdb.find({area: data.area, status: "Sukces"});
     //podział na statusy
     leadObj.forEach(el => {
       tabData.push(el.owner)
@@ -721,13 +784,13 @@ if(data.area){
 
 if(data.region){
   if(data.region === "Wszystkie"){
-    leadObj = (await leads$).filter(p =>  p.status === "Sukces");
+    leadObj =  await LeadMdb.find({status: "Sukces"});
         //podział na statusy
         leadObj.forEach(el => {
           tabData.push(el.region)
         });
   }else{
-    leadObj = (await leads$).filter(p => p.region === data.region && p.status === "Sukces");
+    leadObj =  await LeadMdb.find({region: data.region, status: "Sukces"});
         //podział na statusy
         leadObj.forEach(el => {
           tabData.push(el.area)
@@ -752,7 +815,8 @@ if(data.region){
 //--------------------POBRANIE DANYCH O KAMPANIACH----------------------
 
 export async function getCampaign(): Promise<Campaign[]>{
-  return (await campaigns$);
+  const campaingList = await CampaignMdb.find({});
+  return campaingList;
 };
 
 //-------------------POBRANIE DANYCH DO PORTFELA------------------------
@@ -760,9 +824,9 @@ export async function getCampaign(): Promise<Campaign[]>{
 //wyliczenie o przychodach i  prowizji dla agenta
 export async function leadCommision(user:string) {
   let commisionTab = [];
-  let leadObj = (await leads$).filter(p => p.status === "Sukces" && p.owner === user);
-  let statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.owner === user);
-  let campaignObj = (await campaigns$);
+  let leadObj =  await LeadMdb.find({owner: user, status: "Sukces"});
+  let statusObj =  await ActionMdb.find({owner: user, status: "Sukces"});
+  let campaignObj =  await CampaignMdb.find({});
   if(leadObj.length > 0){
     leadObj.forEach(lead => {
       let status = statusObj.find(status => status.lead_id == lead.lead_id );
@@ -787,8 +851,9 @@ export async function leadCommision(user:string) {
 //pobranie danych o wydatach agenta na kontakty
 export async function ownLeadWallet(user:string) {
   let ownLeadTab = [];
-  let leadObj = (await leads$).filter(p => p.owner === user);
-  let statusObj = (await leadsActions$).filter(p => (p.status === "Kupiony" || p.status === "Własny") && p.owner === user);
+  let leadObj =  await LeadMdb.find({owner: user});
+  let statusObj =  await ActionMdb.find({owner: user, status:{$in:["Własny", "Kupiony"]} });
+
   if(leadObj.length > 0){
   leadObj.forEach(lead => {
     let status = statusObj.find(status => status.lead_id === lead.lead_id );
@@ -807,17 +872,19 @@ export async function ownLeadWallet(user:string) {
 };
 
 //pobranie dat, w jakich następowały akcję 
-export async function getBilansSummaryData(data:{area?:string, region?:string}){
+export async function getBilansSummaryData(data:{area?:string, region?:string}){  
+
   let dataToSelect = [];
   let statusObj: Action[];
+
   if (data.area){
-    statusObj = (await leadsActions$).filter(p => p.area === data.area);
+    statusObj =  await ActionMdb.find({area: data.area});
   };
   if (data.region){
-    if (data.region=== "Wszystkie"){
-      statusObj = (await leadsActions$);
+    if (data.region === "Wszystkie"){
+      statusObj =  await ActionMdb.find({});
     }else{
-      statusObj = (await leadsActions$).filter(p => p.region === data.region);
+      statusObj =  await ActionMdb.find({region: data.region});
     };
   };
   statusObj.forEach(el => {
@@ -829,191 +896,175 @@ export async function getBilansSummaryData(data:{area?:string, region?:string}){
 };
 
 //pobranie danych do bilansu 
-export async function getBilansSummary(data:{area?:string, region?: string; period:string}) {
-  if(data.area){
-    return await AreaCalculation(data.area, data.period)
-  };
-  if(data.region){
-    return await RegionCalculation(data.region, data.period)
-  };
-};
-
- async function AreaCalculation(area:string, period:string){
+export async function getBilansSummaryArea(data:{area:string, period:string}) {
   let returnTab: Bilans[] = [];
-    let userArea = (await user$).filter(user => user.area === area && user.active && user.role==="agent");
-    if(userArea.length > 0 ){ 
+  let userArea =  await UserMdb.find({area: data.area, active: true, role: "agent"});
 
-      return await loopAwait(userArea,returnTab, period);
-
-      async function loopAwait (userArea, returnTab, period: string ){
-
-      await userArea.forEach(async(agent: User) => {
-        //dane do obiektu 
-        let agent_b = agent.name +" " + agent.surname + " ("+agent.nick+")";
-        let count_lead_b = 0;
-        let count_success_b = 0;
-        let effectiveness_b = 0;
-        let expense_b = 0;
-        let income_b = 0;
-        let bilans_b = 0;
-        
-        let leadObj: any; 
-        let statusObj: any;
-        let leadIdStatusSuccess: any
-        if(period !== "Wszystkie"){
-          let statusBuyObj = (await leadsActions$).filter(p => p.owner === agent.nick && (p.status === "Kupiony" || p.status === "Własny") && p.date.substr(0,7) === period);
-          leadIdStatusSuccess = [];
-          leadObj = [];
-          statusBuyObj.forEach(success => {
-            leadIdStatusSuccess.push(success.lead_id)  
-          });
-        };
-
-
-        if(period === "Wszystkie"){
-        //wszystkie leady i sukcesy użykownika
-        leadObj = (await leads$).filter(p => p.owner === agent.nick);
-          statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.owner === agent.nick);
-        }else{
-          //wszystkie leady i sukcesy użykownika
-          leadObj = (await leads$).filter(p => leadIdStatusSuccess.includes(p.lead_id));
-          statusObj = (await leadsActions$).filter(p => p.owner === agent.nick && p.status === "Sukces" && p.date.substr(0,7) === period);
-        };
-
-        if(leadObj.length > 0 ){
-          //liczba leadów
-          count_lead_b = leadObj.length;
-          //liczba sukcesów
-          count_success_b = statusObj.length;
-          //efektywność 
-          if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
-          else if(count_success_b === 0){effectiveness_b = 0}
-          else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
-          //suma wydatków
-          leadObj.forEach(el => {
-            expense_b += el.price 
-          });
-        };
-
-        if(statusObj.length > 0){
-          //sukcesy użtkownika
-          statusObj.forEach(el => {
-            income_b += el.income
-          });
-        };
- 
-        //bilans
-        bilans_b= income_b - expense_b;
-     
-        let userBilans: Bilans = {
-          agent:agent_b,
-          count_lead: count_lead_b,
-          count_success:  count_success_b,
-          effectiveness: effectiveness_b,
-          expense: expense_b,
-          income: income_b,
-          bilans: bilans_b,
-        };
-
-        returnTab.push(userBilans) 
-      });
-      return  returnTab
-    };
-  }
-  };
-
-  async function RegionCalculation(region:string, period:string){
-    let returnTab: Bilans[] = [];
-
-      let areas: string[];
-      const northRegionAreas = ["Zachodnio-Pomorskie", "Pomorskie", "Warmińsko-Mazurskie", "Kujawsko-Pomorskie", "Podlaskie", "Lubuskie", "Wielkopolskie", "Mazowieckie" ];
-      const southRegionAreas = ["Dolnośląskie", "Lubelskie", "Małopolskie", "Opolskie", "Podkarpackie", "Łódzkie", "Śląskie", "Świętokrzyskie"];
-      
-      if(region === "Północ"){
-        areas = northRegionAreas
-      }
-
-      if(region === "Południe"){
-        areas = southRegionAreas
-      }
-
-      if(region === "Wszystkie"){
-        areas = northRegionAreas.concat(southRegionAreas)
-      }
-
-      return await loopAwait(areas,returnTab, period);
-      async function loopAwait (areas:string[], returnTab, period: string ){
-
-        await areas.forEach(async(area: string) => {
-          //dane do obiektu 
-          let agent_b = area;
-          let count_lead_b = 0;
-          let count_success_b = 0;
-          let effectiveness_b = 0;
-          let expense_b = 0;
-          let income_b = 0;
-          let bilans_b = 0;
+  for await (const agent of userArea ){
+    //dane do obiektu 
+    let agent_b = agent.name +" " + agent.surname + " ("+agent.nick+")";
+    let count_lead_b = 0;
+    let count_success_b = 0;
+    let effectiveness_b = 0;
+    let expense_b = 0;
+    let income_b = 0;
+    let bilans_b = 0;
           
-          let leadObj: any; 
-          let statusObj: any;     
-          let leadIdStatusSuccess: any
-
-          if(period !== "Wszystkie"){
-            let statusBuyObj = (await leadsActions$).filter(p => p.area === area && (p.status === "Kupiony" || p.status === "Własny") && p.date.substr(0,7) === period);
-            leadIdStatusSuccess = [];
-            leadObj = [];
-            statusBuyObj.forEach(success => {
-              leadIdStatusSuccess.push(success.lead_id)  
-            });
-          };
-  
-          if(period === "Wszystkie"){
-          //wszystkie leady i sukcesy obszaru
-            leadObj = (await leads$).filter(p => p.area === area);
-            statusObj = (await leadsActions$).filter(p => p.status === "Sukces" && p.area === area);
-          }else{
-            //wszystkie leady i sukcesy obszaru
-            statusObj = (await leadsActions$).filter(p => p.area === area && p.status === "Sukces" && p.date.substr(0,7) === period);
-            leadObj = (await leads$).filter(p => leadIdStatusSuccess.includes(p.lead_id));
-          }
-  
-          if(leadObj.length > 0){
-            //liczba leadów
-            count_lead_b = leadObj.length;
-            //liczba sukcesów
-            count_success_b = statusObj.length;
-            //efektywność 
-            if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
-            else if(count_success_b === 0){effectiveness_b = 0}
-            else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
-            //suma wydatków
-            leadObj.forEach(el => {
-              expense_b += el.price 
-            });
-          };
-  
-          if(statusObj.length > 0){
-            //sukcesy użtkownika
-            statusObj.forEach(el => {
-              income_b += el.income
-            });
-          };
-   
-          //bilans
-          bilans_b= income_b - expense_b;
-       
-          let userBilans: Bilans = {
-            agent:agent_b,
-            count_lead: count_lead_b,
-            count_success:  count_success_b,
-            effectiveness: effectiveness_b,
-            expense: expense_b,
-            income: income_b,
-            bilans: bilans_b,
-          };
-  
-          returnTab.push(userBilans) 
-        });
-        return  returnTab
+    let leadObj: any; 
+    let statusObj: any;
+    let leadIdStatusSuccess: any
+    const periodToSearch = new RegExp(`^${data.period}`, "i");
+    if(data.period !== "Wszystkie"){
+      let statusBuyObj =  await ActionMdb.find({owner: agent.nick, status:{$in:["Własny", "Kupiony"]}, date:{$regex: periodToSearch}});
+      leadIdStatusSuccess = [];
+      leadObj = [];
+      for await (const success of statusBuyObj ){
+        leadIdStatusSuccess.push(success.lead_id)  
       };
     };
+  
+    if(data.period === "Wszystkie"){
+      //wszystkie leady i sukcesy użykownika
+      leadObj =  await LeadMdb.find({owner: agent.nick});
+      statusObj =  await ActionMdb.find({owner: agent.nick, status: "Sukces"})
+    }else{
+      //wszystkie leady i sukcesy użykownika
+      leadObj =  await LeadMdb.find({lead_id:{$in: leadIdStatusSuccess}});
+      statusObj =  await ActionMdb.find({owner: agent.nick, status:"Sukces", date:{$regex: periodToSearch}});
+    };
+  
+    if(leadObj.length > 0 ){
+      //liczba leadów
+      count_lead_b = leadObj.length;
+      //liczba sukcesów
+      count_success_b = statusObj.length;
+      //efektywność 
+      if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
+      else if(count_success_b === 0){effectiveness_b = 0}
+      else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
+      //suma wydatków
+      for await(const el of leadObj ){
+        expense_b += el.price 
+      };
+    };
+  
+    if(statusObj.length > 0){
+      //sukcesy użtkownika        
+      for await (const el of statusObj ){
+        income_b += el.income
+      };
+    };
+          
+    //bilans
+    bilans_b= income_b - expense_b;
+       
+    let userBilans: Bilans = {
+      agent:agent_b,
+      count_lead: count_lead_b,
+      count_success:  count_success_b,
+      effectiveness: effectiveness_b,
+      expense: expense_b,
+      income: income_b,
+      bilans: bilans_b,
+    };
+
+    returnTab.push(userBilans);
+
+  };
+  return returnTab   
+};
+
+export async function getBilansSummaryRegion(data:{region:string, period:string}) {
+  let returnTab: Bilans[] = [];
+  let areas: string[];
+  const northRegionAreas = ["Zachodnio-Pomorskie", "Pomorskie", "Warmińsko-Mazurskie", "Kujawsko-Pomorskie", "Podlaskie", "Lubuskie", "Wielkopolskie", "Mazowieckie" ];
+  const southRegionAreas = ["Dolnośląskie", "Lubelskie", "Małopolskie", "Opolskie", "Podkarpackie", "Łódzkie", "Śląskie", "Świętokrzyskie"];
+      
+  if(data.region === "Północ"){
+    areas = northRegionAreas
+  };
+
+  if(data.region === "Południe"){
+    areas = southRegionAreas
+  };
+
+  if(data.region === "Wszystkie"){
+    areas = northRegionAreas.concat(southRegionAreas)
+  };
+
+  const periodToSearch = new RegExp(`^${data.period}`, "i");
+
+  for await (const area of areas ){
+
+    //dane do obiektu 
+    let agent_b = area;
+    let count_lead_b = 0;
+    let count_success_b = 0;
+    let effectiveness_b = 0;
+    let expense_b = 0;
+    let income_b = 0;
+    let bilans_b = 0;
+          
+    let leadObj: any; 
+    let statusObj: any;     
+    let leadIdStatusSuccess: any
+
+    if(data.period !== "Wszystkie"){
+      let statusBuyObj =  await ActionMdb.find({area: area, status:{$in:["Własny", "Kupiony"]}, date:{$regex: periodToSearch}});
+      leadIdStatusSuccess = [];
+      leadObj = [];
+      for await (const success of statusBuyObj ){
+        leadIdStatusSuccess.push(success.lead_id)  
+      };
+    };
+  
+    if(data.period === "Wszystkie"){
+      //wszystkie leady i sukcesy obszaru
+      leadObj =  await LeadMdb.find({area: area});
+      statusObj =  await ActionMdb.find({area: area, status: "Sukces"});
+    }else{
+      //wszystkie leady i sukcesy obszaru
+      leadObj =  await LeadMdb.find({lead_id:{$in: leadIdStatusSuccess}});
+      statusObj =  await ActionMdb.find({area: area, status:"Sukces", date:{$regex: periodToSearch}});
+    };
+  
+    if(leadObj.length > 0){
+      //liczba leadów
+      count_lead_b = leadObj.length;
+      //liczba sukcesów
+      count_success_b = statusObj.length;
+      //efektywność 
+      if( count_lead_b === 0 && count_success_b === 0){effectiveness_b = 0}
+      else if(count_success_b === 0){effectiveness_b = 0}
+      else{effectiveness_b = Math.round((count_success_b/count_lead_b)*100)};
+      //suma wydatków
+      for await(const el of leadObj ){
+        expense_b += el.price 
+      };
+    };
+  
+    if(statusObj.length > 0){
+      //sukcesy użtkownika        
+      for await (const el of statusObj ){
+        income_b += el.income
+      };
+    };
+
+    //bilans
+    bilans_b= income_b - expense_b;
+    let userBilans: Bilans = {
+      agent:agent_b,
+      count_lead: count_lead_b,
+      count_success:  count_success_b,
+      effectiveness: effectiveness_b,
+      expense: expense_b,
+      income: income_b,
+      bilans: bilans_b,
+    };
+
+    returnTab.push(userBilans) 
+  };
+
+  return  returnTab
+
+};
