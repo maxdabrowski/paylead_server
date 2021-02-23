@@ -5,5 +5,6 @@ export interface Bilans {
   effectiveness:number;
   expense: number;
   income: number;
+  income_agent?: number;
   bilans: number;
 }

@@ -9,6 +9,7 @@ import { Campaign } from './models/Campaign';
 import { Commision } from './models/Commision';
 import { NewUser } from './models/newUser';
 import { Bilans } from './models/Bilans';
+import { rawListeners } from 'process';
 
 const UserMdb = require('./models/mongoDBModels/users');
 const LeadMdb = require('./models/mongoDBModels/leads');
@@ -827,8 +828,10 @@ export async function leadCommision(user:string) {
   let leadObj =  await LeadMdb.find({owner: user, status: "Sukces"});
   let statusObj =  await ActionMdb.find({owner: user, status: "Sukces"});
   let campaignObj =  await CampaignMdb.find({});
+
   if(leadObj.length > 0){
     leadObj.forEach(lead => {
+
       let status = statusObj.find(status => status.lead_id == lead.lead_id );
       let campaign = campaignObj.find(campaign => campaign.campaign === lead.campaign);
       let commision: Commision = {
@@ -908,6 +911,8 @@ export async function getBilansSummaryArea(data:{area:string, period:string}) {
     let effectiveness_b = 0;
     let expense_b = 0;
     let income_b = 0;
+    let income_agent = 0;
+    let income_agent_b = 0;
     let bilans_b = 0;
           
     let leadObj: any; 
@@ -951,21 +956,27 @@ export async function getBilansSummaryArea(data:{area:string, period:string}) {
     if(statusObj.length > 0){
       //sukcesy użtkownika        
       for await (const el of statusObj ){
-        income_b += el.income
+        const lead = await LeadMdb.find({lead_id: el.lead_id});
+        const campaign = await CampaignMdb.find({campaign:lead[0].campaign});
+
+
+        income_b += el.income;
+        income_agent_b += el.income*parseFloat(campaign[0].commision);
       };
     };
           
     //bilans
-    bilans_b= income_b - expense_b;
-       
+
+    income_agent = income_agent_b - expense_b;
+    bilans_b= income_b - income_agent;
     let userBilans: Bilans = {
       agent:agent_b,
       count_lead: count_lead_b,
       count_success:  count_success_b,
       effectiveness: effectiveness_b,
-      expense: expense_b,
+      expense: Math.ceil(income_agent),
       income: income_b,
-      bilans: bilans_b,
+      bilans: Math.floor(bilans_b),
     };
 
     returnTab.push(userBilans);
